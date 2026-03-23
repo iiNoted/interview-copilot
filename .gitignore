@@ -5,3 +5,4 @@ out/
 *.dmg
 *.zip
 pipeline-data/
+models/
