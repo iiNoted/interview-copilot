@@ -1,6 +1,7 @@
-node_modules
-dist
-out
-.DS_Store
-.eslintcache
-*.log*
+node_modules/
+dist/
+out/
+.env
+*.dmg
+*.zip
+pipeline-data/

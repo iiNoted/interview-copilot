@@ -1,7 +1,7 @@
 {
   "name": "interview-copilot",
   "version": "1.0.0",
-  "description": "AI-powered interview coaching overlay with live transcription and remote view",
+  "description": "AI-powered interview and meeting copilot with real-time transcription",
   "main": "./out/main/index.js",
   "author": "SourceThread",
   "homepage": "https://copilot.sourcethread.com",
@@ -71,5 +71,9 @@
     "react-dom": "^19.2.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iiNoted/interview-copilot.git"
   }
 }

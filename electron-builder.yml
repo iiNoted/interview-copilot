@@ -48,4 +48,6 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
+  owner: iiNoted
+  repo: interview-copilot
   releaseType: release
