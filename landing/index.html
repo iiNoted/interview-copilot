@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Copilot — AI-Powered Meeting Assistant</title>
+    <meta name="description" content="Real-time transcription + AI coaching for interviews and meetings. Transparent overlay, whisper-fast, privacy-first.">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #e6edf3; }
+        
+        .hero { text-align: center; padding: 80px 20px 60px; max-width: 800px; margin: 0 auto; }
+        .hero h1 { font-size: 3em; font-weight: 700; margin-bottom: 16px; }
+        .hero h1 span { color: #1a5632; }
+        .hero .subtitle { font-size: 1.3em; color: #8b949e; margin-bottom: 40px; line-height: 1.5; }
+        
+        .cta-group { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .btn { padding: 14px 32px; border-radius: 8px; font-size: 1.1em; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.2s; }
+        .btn-primary { background: #1a5632; color: #fff; border: 2px solid #1a5632; }
+        .btn-primary:hover { background: #22714a; border-color: #22714a; }
+        .btn-secondary { background: transparent; color: #d4a843; border: 2px solid #d4a843; }
+        .btn-secondary:hover { background: #d4a84315; }
+        .platform-note { color: #8b949e; font-size: 0.9em; }
+        
+        .features { max-width: 1000px; margin: 0 auto; padding: 60px 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 32px; }
+        .feature { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 32px; }
+        .feature .icon { font-size: 2em; margin-bottom: 12px; }
+        .feature h3 { color: #d4a843; font-size: 1.2em; margin-bottom: 8px; }
+        .feature p { color: #8b949e; line-height: 1.6; }
+        
+        .how-it-works { max-width: 800px; margin: 0 auto; padding: 60px 20px; text-align: center; }
+        .how-it-works h2 { font-size: 2em; margin-bottom: 40px; }
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; text-align: left; }
+        .step { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; }
+        .step .num { color: #1a5632; font-size: 2em; font-weight: 700; margin-bottom: 8px; }
+        .step h4 { color: #e6edf3; margin-bottom: 8px; }
+        .step p { color: #8b949e; font-size: 0.95em; line-height: 1.5; }
+        
+        .knowledge { max-width: 800px; margin: 0 auto; padding: 60px 20px; text-align: center; }
+        .knowledge h2 { font-size: 2em; margin-bottom: 16px; }
+        .knowledge .desc { color: #8b949e; font-size: 1.1em; margin-bottom: 32px; line-height: 1.6; }
+        .tech-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .tech-tag { background: #1a563220; border: 1px solid #1a563260; color: #4ade80; padding: 6px 14px; border-radius: 20px; font-size: 0.85em; }
+
+        .pricing { max-width: 800px; margin: 0 auto; padding: 60px 20px; text-align: center; }
+        .pricing h2 { font-size: 2em; margin-bottom: 32px; }
+        .price-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .price-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 32px; text-align: left; }
+        .price-card.pro { border-color: #d4a843; }
+        .price-card h3 { font-size: 1.3em; margin-bottom: 8px; }
+        .price-card .price { font-size: 2em; font-weight: 700; color: #d4a843; margin-bottom: 16px; }
+        .price-card .price span { font-size: 0.5em; color: #8b949e; }
+        .price-card ul { list-style: none; }
+        .price-card ul li { padding: 6px 0; color: #8b949e; }
+        .price-card ul li::before { content: "✓ "; color: #4ade80; }
+
+        footer { text-align: center; padding: 40px 20px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.9em; }
+        footer a { color: #58a6ff; text-decoration: none; }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 2em; }
+            .price-cards { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>Interview <span>Copilot</span></h1>
+    <p class="subtitle">Real-time transcription + AI coaching that sits on top of your meetings. Hear everything. Miss nothing. Ace the interview.</p>
+    <div class="cta-group">
+        <a href="#download" class="btn btn-primary">Download for Mac</a>
+        <a href="#features" class="btn btn-secondary">See Features</a>
+    </div>
+    <p class="platform-note">macOS 13+ · Apple Silicon & Intel · Windows coming soon</p>
+</div>
+
+<div class="features" id="features">
+    <div class="feature">
+        <div class="icon">🎤</div>
+        <h3>Live Transcription</h3>
+        <p>Whisper-powered real-time transcription of any meeting audio. Works with Teams, Zoom, Google Meet — anything that plays through your Mac.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">🤖</div>
+        <h3>AI Interview Coach</h3>
+        <p>Ask questions mid-interview and get instant, context-aware answers. Upload your resume and the job description for tailored coaching.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">📱</div>
+        <h3>Phone Remote View</h3>
+        <p>Scan a QR code to see the transcript on your phone. Perfect for in-person interviews where you can't look at your laptop.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">📚</div>
+        <h3>Knowledge Library</h3>
+        <p>Built-in deep-dive articles on 21+ tech topics — TM1, Kubernetes, Terraform, Power BI, Snowflake, and more. Study before, reference during.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">🔒</div>
+        <h3>Privacy First</h3>
+        <p>Audio is transcribed locally on your device using whisper.cpp. No recordings stored. No data sent to servers unless you explicitly ask the AI.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">⌨️</div>
+        <h3>Invisible Overlay</h3>
+        <p>Transparent, click-through window that sits on top of your meeting app. Global hotkey to show/hide. Minimize to a tiny floating button.</p>
+    </div>
+</div>
+
+<div class="how-it-works">
+    <h2>How It Works</h2>
+    <div class="steps">
+        <div class="step">
+            <div class="num">1</div>
+            <h4>Install & Setup</h4>
+            <p>Download the app, install BlackHole audio driver (guided setup), and you're ready in under 2 minutes.</p>
+        </div>
+        <div class="step">
+            <div class="num">2</div>
+            <h4>Upload Context</h4>
+            <p>Drop in your resume and the job description. The AI uses these to give you tailored, relevant answers.</p>
+        </div>
+        <div class="step">
+            <div class="num">3</div>
+            <h4>Join Your Meeting</h4>
+            <p>Start your meeting on any platform. Hit the transcribe button. Watch the live transcript appear in the overlay.</p>
+        </div>
+        <div class="step">
+            <div class="num">4</div>
+            <h4>Ask the AI</h4>
+            <p>Type a question anytime. The AI sees the transcript + your context and gives you a focused answer in seconds.</p>
+        </div>
+    </div>
+</div>
+
+<div class="knowledge">
+    <h2>Built-In Knowledge Library</h2>
+    <p class="desc">Deep-dive technical articles covering the tools and platforms interviewers actually ask about. Written by practitioners, not marketers.</p>
+    <div class="tech-grid">
+        <span class="tech-tag">IBM TM1</span>
+        <span class="tech-tag">Kubernetes</span>
+        <span class="tech-tag">Terraform</span>
+        <span class="tech-tag">Power BI</span>
+        <span class="tech-tag">Snowflake</span>
+        <span class="tech-tag">Apache Airflow</span>
+        <span class="tech-tag">Databricks</span>
+        <span class="tech-tag">GCP</span>
+        <span class="tech-tag">Cognos</span>
+        <span class="tech-tag">Apache Spark</span>
+        <span class="tech-tag">Kafka</span>
+        <span class="tech-tag">LangChain / RAG</span>
+        <span class="tech-tag">dbt</span>
+        <span class="tech-tag">Docker</span>
+        <span class="tech-tag">Azure Synapse</span>
+        <span class="tech-tag">AWS Bedrock</span>
+        <span class="tech-tag">MLOps</span>
+        <span class="tech-tag">Tableau</span>
+        <span class="tech-tag">Oracle Hyperion</span>
+        <span class="tech-tag">SAP FICO</span>
+        <span class="tech-tag">Essbase</span>
+    </div>
+</div>
+
+<div class="pricing" id="pricing">
+    <h2>Pricing</h2>
+    <div class="price-cards">
+        <div class="price-card">
+            <h3>Free</h3>
+            <div class="price">$0</div>
+            <ul>
+                <li>Live transcription</li>
+                <li>Transcript export</li>
+                <li>Knowledge library access</li>
+                <li>Phone remote view</li>
+                <li>5 AI queries per session</li>
+            </ul>
+        </div>
+        <div class="price-card pro">
+            <h3>Pro</h3>
+            <div class="price">Pay as you go <span>~$0.01/query</span></div>
+            <ul>
+                <li>Everything in Free</li>
+                <li>Unlimited AI queries</li>
+                <li>Claude Opus, Sonnet & Haiku</li>
+                <li>Resume + JD context injection</li>
+                <li>Priority support</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="download" style="max-width: 600px; margin: 0 auto; padding: 60px 20px; text-align: center;">
+    <h2 style="font-size: 2em; margin-bottom: 16px;">Download</h2>
+    <p style="color: #8b949e; margin-bottom: 32px;">Available for macOS. Windows and Linux coming soon.</p>
+    <a href="https://github.com/sourcethread/interview-copilot/releases/latest" class="btn btn-primary" style="font-size: 1.2em; padding: 16px 40px;">Download for Mac (DMG)</a>
+    <p style="color: #8b949e; margin-top: 16px; font-size: 0.9em;">Requires macOS 13 Ventura or later · Apple Silicon & Intel</p>
+</div>
+
+<footer>
+    <p>
+        © 2026 SourceThread · 
+        <a href="/privacy-policy.html">Privacy Policy</a> · 
+        <a href="/terms-of-service.html">Terms of Service</a> · 
+        <a href="mailto:support@sourcethread.com">Contact</a>
+    </p>
+</footer>
+
+</body>
+</html>
