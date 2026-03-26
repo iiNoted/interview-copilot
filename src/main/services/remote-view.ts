@@ -13,11 +13,20 @@ interface RemoteViewState {
     response: string
     isStreaming: boolean
   }>
+  spawnedChats?: Array<{
+    id: string
+    selectedText: string
+    response: string
+    isStreaming: boolean
+    thinkingStep: string | null
+    categoryResponse: string | null
+    isCategoryStreaming: boolean
+  }>
   isTranscribing: boolean
   currentModel: string
   resumeFilename: string | null
   jobFilename: string | null
-  mode: string
+  mode?: string
 }
 
 let httpServer: ReturnType<typeof createServer> | null = null
@@ -25,6 +34,12 @@ let wss: WebSocketServer | null = null
 let authToken: string | null = null
 let currentState: RemoteViewState | null = null
 let serverPort: number = 18791
+
+// Rate limiting for failed auth attempts
+const failedAttempts = new Map<string, { count: number; blockedUntil: number }>()
+const MAX_FAILED_ATTEMPTS = 5
+const BLOCK_DURATION_MS = 60_000 // 1 minute block after 5 failures
+const MAX_CLIENTS = 5 // max concurrent WebSocket connections
 
 export function generateAuthToken(): string {
   return randomBytes(32).toString('hex')
@@ -70,14 +85,40 @@ export function startRemoteViewServer(port: number, token: string): { url: strin
   wss = new WebSocketServer({ noServer: true })
 
   httpServer.on('upgrade', (request: IncomingMessage, socket: Socket, head: Buffer) => {
+    const clientIp = request.socket.remoteAddress || 'unknown'
+    const now = Date.now()
+
+    // Check if IP is blocked
+    const record = failedAttempts.get(clientIp)
+    if (record && record.count >= MAX_FAILED_ATTEMPTS && now < record.blockedUntil) {
+      socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n')
+      socket.destroy()
+      return
+    }
+
+    // Check max concurrent clients
+    if (wss && wss.clients.size >= MAX_CLIENTS) {
+      socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n')
+      socket.destroy()
+      return
+    }
+
     const url = new URL(request.url || '', `http://${request.headers.host}`)
     const clientToken = url.searchParams.get('token')
 
     if (clientToken !== authToken) {
+      // Track failed attempt with exponential backoff
+      const existing = failedAttempts.get(clientIp) || { count: 0, blockedUntil: 0 }
+      existing.count++
+      existing.blockedUntil = now + BLOCK_DURATION_MS * existing.count
+      failedAttempts.set(clientIp, existing)
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n')
       socket.destroy()
       return
     }
+
+    // Successful auth — clear failed attempts for this IP
+    failedAttempts.delete(clientIp)
 
     wss!.handleUpgrade(request, socket, head, (ws) => {
       wss!.emit('connection', ws)
@@ -164,6 +205,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .q-head{padding:10px 14px;font-size:13px;font-weight:500;color:#fde047}
 .q-body{padding:10px 14px;border-top:1px solid rgba(255,255,255,.05);font-size:13px;line-height:1.7;color:rgba(255,255,255,.8);white-space:pre-wrap}
 .q-body strong{color:#93c5fd}
+.r-card{background:rgba(167,139,250,.03);border:1px solid rgba(167,139,250,.2);border-radius:10px;margin-bottom:12px;overflow:hidden}
+.r-head{padding:10px 14px;font-size:13px;font-weight:500;color:#c4b5fd}
+.r-body{padding:10px 14px;border-top:1px solid rgba(167,139,250,.1);font-size:13px;line-height:1.7;color:rgba(255,255,255,.8);white-space:pre-wrap}
+.r-body strong{color:#c4b5fd}
+.r-cat{padding:8px 14px;border-top:1px solid rgba(167,139,250,.1);font-size:12px;line-height:1.6;color:rgba(255,255,255,.6)}
+.r-cat-label{font-size:10px;color:rgba(167,139,250,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.thinking{font-size:12px;color:rgba(167,139,250,.4);padding:10px 14px}
 .cursor{display:inline-block;width:6px;height:14px;background:#60a5fa;border-radius:2px;animation:blink .8s infinite;vertical-align:text-bottom;margin-left:2px}
 .meta{padding:8px 16px;font-size:11px;color:rgba(255,255,255,.25);display:flex;justify-content:space-between}
 .empty{text-align:center;padding:60px 20px;color:rgba(255,255,255,.15)}
@@ -225,6 +273,27 @@ function render(s){
     }
   }
   h+='</div>';
+  if(s.spawnedChats&&s.spawnedChats.length){
+    h+='<div class="section"><div class="section-title">Research ('+s.spawnedChats.length+')</div>';
+    for(var k=0;k<s.spawnedChats.length;k++){
+      var rc=s.spawnedChats[k];
+      h+='<div class="r-card"><div class="r-head">&ldquo;'+esc(rc.selectedText)+'&rdquo;</div>';
+      if(rc.thinkingStep&&!rc.response){
+        h+='<div class="thinking">'+esc(rc.thinkingStep)+'</div>';
+      }else{
+        h+='<div class="r-body">'+fmt(rc.response||'');
+        if(rc.isStreaming)h+='<span class="cursor"></span>';
+        h+='</div>';
+      }
+      if(rc.categoryResponse){
+        h+='<div class="r-cat"><div class="r-cat-label">Broader Context</div>'+fmt(rc.categoryResponse);
+        if(rc.isCategoryStreaming)h+='<span class="cursor"></span>';
+        h+='</div>';
+      }
+      h+='</div>';
+    }
+    h+='</div>';
+  }
   if(s.detectedQuestions&&s.detectedQuestions.length){
     h+='<div class="section"><div class="section-title">AI Copilot ('+s.detectedQuestions.length+')</div>';
     for(var j=0;j<s.detectedQuestions.length;j++){

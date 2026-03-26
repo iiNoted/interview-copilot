@@ -1,6 +1,7 @@
 import Stripe from 'stripe'
 import { shell, net } from 'electron'
 import Store from 'electron-store'
+import { getAuthUser } from './auth-store'
 
 // Pricing: 4x the actual API cost
 // Anthropic pricing per 1M tokens:
@@ -13,6 +14,8 @@ import Store from 'electron-store'
 
 const MARKUP = 4
 const BILLING_API = 'https://copilot.sourcethread.com/api/copilot/billing'
+
+// Owner bypass handled server-side only — never trust client
 
 interface BillingConfig {
   stripeSecretKey: string | null
@@ -29,7 +32,15 @@ interface BillingState {
   unpaidCredits: number
 }
 
-const store = new Store<{ billing: BillingState }>({
+// Flat subscription ($0.99/month) — managed server-side
+interface FlatBillingState {
+  email: string | null
+  customerId: string | null
+  subscriptionId: string | null
+  isActive: boolean
+}
+
+const store = new Store<{ billing: BillingState; flatBilling: FlatBillingState }>({
   defaults: {
     billing: {
       config: {
@@ -42,6 +53,12 @@ const store = new Store<{ billing: BillingState }>({
       isActive: false,
       totalCreditsUsed: 0,
       unpaidCredits: 0
+    },
+    flatBilling: {
+      email: null,
+      customerId: null,
+      subscriptionId: null,
+      isActive: false
     }
   }
 })
@@ -91,7 +108,7 @@ export async function reportUsage(credits: number): Promise<void> {
   }
 
   try {
-    await s.subscriptionItems.createUsageRecord(billing.subscriptionItemId, {
+    await (s.subscriptionItems as any).createUsageRecord(billing.subscriptionItemId, {
       quantity: credits,
       timestamp: Math.floor(Date.now() / 1000),
       action: 'increment'
@@ -243,4 +260,182 @@ export function updateBillingConfig(config: Partial<BillingConfig>): void {
   billing.config = { ...billing.config, ...config }
   store.set('billing', billing)
   stripe = null
+}
+
+// ── Flat subscription ($0.99/month) ──────────────────────────────
+// Server-managed: server creates checkout sessions and handles webhooks.
+// Desktop just polls for status.
+
+let flatPollTimer: ReturnType<typeof setInterval> | null = null
+
+export async function createFlatCheckoutSession(email: string): Promise<string | null> {
+  try {
+    const response = await net.fetch(`${BILLING_API}/create-flat-checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    })
+
+    if (!response.ok) return null
+    const data = (await response.json()) as { url: string; sessionId: string }
+    if (!data.url) return null
+
+    // Store email for polling
+    const flat = store.get('flatBilling')
+    flat.email = email
+    store.set('flatBilling', flat)
+
+    shell.openExternal(data.url)
+    pollFlatBillingStatus()
+
+    return data.url
+  } catch (err) {
+    console.error('Failed to create flat checkout session:', err)
+    return null
+  }
+}
+
+function pollFlatBillingStatus(): void {
+  if (flatPollTimer) return
+
+  let attempts = 0
+  flatPollTimer = setInterval(async () => {
+    attempts++
+    if (attempts > 60) {
+      if (flatPollTimer) clearInterval(flatPollTimer)
+      flatPollTimer = null
+      return
+    }
+
+    try {
+      const flat = store.get('flatBilling')
+      if (!flat.email) return
+
+      const response = await net.fetch(
+        `${BILLING_API}/flat-status?email=${encodeURIComponent(flat.email)}`
+      )
+      if (!response.ok) return
+
+      const data = (await response.json()) as {
+        active: boolean
+        customerId?: string
+        subscriptionId?: string
+      }
+
+      if (data.active) {
+        const f = store.get('flatBilling')
+        f.isActive = true
+        if (data.customerId) f.customerId = data.customerId
+        if (data.subscriptionId) f.subscriptionId = data.subscriptionId
+        store.set('flatBilling', f)
+        if (flatPollTimer) clearInterval(flatPollTimer)
+        flatPollTimer = null
+      }
+    } catch {
+      // Ignore — will retry
+    }
+  }, 5000)
+}
+
+export function getFlatBillingState(): {
+  isActive: boolean
+  email: string | null
+  customerId: string | null
+} {
+  const flat = store.get('flatBilling')
+  return {
+    isActive: flat.isActive,
+    email: flat.email,
+    customerId: flat.customerId
+  }
+}
+
+// Fresh server check — used by SubscriptionGate to avoid stale cached state
+export async function checkFlatBillingFresh(email: string): Promise<boolean> {
+  try {
+    const response = await net.fetch(
+      `${BILLING_API}/flat-status?email=${encodeURIComponent(email)}`
+    )
+    if (!response.ok) return false
+
+    const data = (await response.json()) as {
+      active: boolean
+      customerId?: string
+      subscriptionId?: string
+    }
+
+    // Update cache
+    const f = store.get('flatBilling')
+    f.email = email
+    f.isActive = data.active
+    if (data.customerId) f.customerId = data.customerId
+    if (data.subscriptionId) f.subscriptionId = data.subscriptionId
+    store.set('flatBilling', f)
+
+    return data.active
+  } catch {
+    // Fall back to cached state
+    return store.get('flatBilling').isActive
+  }
+}
+
+export async function checkFlatBillingOnLaunch(): Promise<void> {
+  const flat = store.get('flatBilling')
+
+  // Sync email from auth store if missing
+  if (!flat.email) {
+    const authUser = getAuthUser()
+    if (authUser?.email) {
+      flat.email = authUser.email
+      store.set('flatBilling', flat)
+    }
+  }
+
+  if (!flat.email) return
+
+  // Always check server — handles both activation AND cancellation
+  try {
+    const response = await net.fetch(
+      `${BILLING_API}/flat-status?email=${encodeURIComponent(flat.email)}`
+    )
+    if (!response.ok) return
+
+    const data = (await response.json()) as {
+      active: boolean
+      customerId?: string
+      subscriptionId?: string
+    }
+
+    const f = store.get('flatBilling')
+    f.isActive = data.active
+    if (data.customerId) f.customerId = data.customerId
+    if (data.subscriptionId) f.subscriptionId = data.subscriptionId
+    store.set('flatBilling', f)
+  } catch {
+    // Will check again on next launch — keep cached state
+  }
+}
+
+export function stopFlatPolling(): void {
+  if (flatPollTimer) {
+    clearInterval(flatPollTimer)
+    flatPollTimer = null
+  }
+}
+
+/**
+ * Fetch the cpk_ API key from SourceThread server.
+ * Requires both email and customerId (proof of ownership).
+ */
+export async function fetchCopilotApiKey(email: string, customerId: string): Promise<string | null> {
+  try {
+    const response = await net.fetch(
+      `https://app.sourcethread.com/api/copilot/ai/key?email=${encodeURIComponent(email)}&customer_id=${encodeURIComponent(customerId)}`
+    )
+    if (!response.ok) return null
+    const data = (await response.json()) as { apiKey?: string }
+    return data.apiKey || null
+  } catch {
+    return null
+  }
 }

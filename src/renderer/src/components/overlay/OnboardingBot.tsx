@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useOverlayStore } from '@renderer/stores/overlay-store'
+import { useT } from '@renderer/i18n/context'
 import { Button } from '@renderer/components/ui/button'
 import {
   CheckCircle2,
@@ -21,6 +22,7 @@ interface SetupStatus {
 }
 
 export function OnboardingBot(): React.JSX.Element | null {
+  const { t } = useT()
   const { resumeFilename, setResume, jobFilename, setJob } = useOverlayStore()
   const [status, setStatus] = useState<SetupStatus | null>(null)
   const [testing, setTesting] = useState(false)
@@ -83,7 +85,7 @@ export function OnboardingBot(): React.JSX.Element | null {
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/5 border-b border-blue-500/10">
           <Bot className="h-4 w-4 text-blue-400" />
-          <span className="text-xs font-medium text-blue-300 flex-1">Setup Assistant</span>
+          <span className="text-xs font-medium text-blue-300 flex-1">{t('onboarding.title')}</span>
           <button
             onClick={handleDismiss}
             className="text-white/30 hover:text-white/60 transition-colors"
@@ -95,8 +97,8 @@ export function OnboardingBot(): React.JSX.Element | null {
         <div className="p-3 space-y-2.5">
           <p className="text-[11px] text-white/60 leading-snug">
             {allGood
-              ? "You're all set! Everything looks good."
-              : "Let's get you set up. Here's what we need:"}
+              ? t('onboarding.all_good')
+              : t('onboarding.setup_needed')}
           </p>
 
           {/* Checklist */}
@@ -115,8 +117,8 @@ export function OnboardingBot(): React.JSX.Element | null {
               >
                 <Mic className="h-3 w-3 inline mr-1" />
                 {status.audioReady
-                  ? 'Audio capture ready'
-                  : 'Audio capture needs setup (BlackHole)'}
+                  ? t('onboarding.audio_ready')
+                  : t('onboarding.audio_needed')}
               </span>
               {!testing && !testResult && (
                 <Button
@@ -125,7 +127,7 @@ export function OnboardingBot(): React.JSX.Element | null {
                   className="h-5 text-[9px] px-1.5 text-blue-400/70 hover:text-blue-400"
                   onClick={handleAudioTest}
                 >
-                  Test
+                  {t('onboarding.test')}
                 </Button>
               )}
               {testing && <Loader2 className="h-3 w-3 text-blue-400 animate-spin shrink-0" />}
@@ -133,7 +135,7 @@ export function OnboardingBot(): React.JSX.Element | null {
                 <span
                   className={`text-[9px] ${testResult.success ? 'text-green-400' : 'text-red-400'}`}
                 >
-                  {testResult.success ? 'Pass' : 'Fail'}
+                  {testResult.success ? t('onboarding.pass') : t('onboarding.fail')}
                 </span>
               )}
             </div>
@@ -152,8 +154,8 @@ export function OnboardingBot(): React.JSX.Element | null {
               >
                 <FileText className="h-3 w-3 inline mr-1" />
                 {resumeUploaded
-                  ? `Resume loaded (${resumeFilename || 'uploaded'})`
-                  : 'Upload resume for personalized answers'}
+                  ? t('onboarding.resume_loaded', { filename: resumeFilename || 'uploaded' })
+                  : t('onboarding.resume_needed')}
               </span>
               {!resumeUploaded && (
                 <Button
@@ -162,7 +164,7 @@ export function OnboardingBot(): React.JSX.Element | null {
                   className="h-5 text-[9px] px-1.5 text-blue-400/70 hover:text-blue-400"
                   onClick={handleUploadResume}
                 >
-                  Upload
+                  {t('onboarding.upload')}
                 </Button>
               )}
             </div>
@@ -181,8 +183,8 @@ export function OnboardingBot(): React.JSX.Element | null {
               >
                 <Briefcase className="h-3 w-3 inline mr-1" />
                 {jobUploaded
-                  ? 'Job description loaded'
-                  : 'Upload job posting for targeted answers'}
+                  ? t('onboarding.job_loaded')
+                  : t('onboarding.job_needed')}
               </span>
               {!jobUploaded && (
                 <Button
@@ -191,7 +193,7 @@ export function OnboardingBot(): React.JSX.Element | null {
                   className="h-5 text-[9px] px-1.5 text-blue-400/70 hover:text-blue-400"
                   onClick={handleUploadJob}
                 >
-                  Upload
+                  {t('onboarding.upload')}
                 </Button>
               )}
             </div>
@@ -201,7 +203,7 @@ export function OnboardingBot(): React.JSX.Element | null {
               <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0" />
               <span className="text-[11px] text-green-300/70 flex-1">
                 <Zap className="h-3 w-3 inline mr-1" />
-                AI connected (OpenClaw)
+                {t('onboarding.api_ready')}
               </span>
             </div>
           </div>
@@ -215,7 +217,7 @@ export function OnboardingBot(): React.JSX.Element | null {
                 onClick={handleDismiss}
               >
                 <CheckCircle2 className="h-3 w-3" />
-                Got it!
+                {t('onboarding.got_it')}
               </Button>
             )}
             {!allGood && (
@@ -225,7 +227,7 @@ export function OnboardingBot(): React.JSX.Element | null {
                 className="flex-1 h-7 text-[11px] text-white/40"
                 onClick={handleDismiss}
               >
-                Skip for now
+                {t('onboarding.skip')}
               </Button>
             )}
           </div>

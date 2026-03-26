@@ -1,5 +1,7 @@
 import { execSync, spawn, ChildProcess } from 'child_process'
-import { existsSync } from 'fs'
+import { existsSync, writeFileSync, readFileSync, unlinkSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
 
 export interface AudioSetupStatus {
   platform: 'darwin' | 'win32' | 'linux'
@@ -9,8 +11,62 @@ export interface AudioSetupStatus {
   instructions: string | null
 }
 
+const SWITCH_AUDIO = '/opt/homebrew/bin/SwitchAudioSource'
+
 let mirrorProc: ChildProcess | null = null
 let originalOutput: string | null = null
+
+// Persist the original audio device to a temp file so it survives crashes
+const ORIGINAL_OUTPUT_FILE = join(tmpdir(), 'interview-copilot-original-audio-output.txt')
+
+function persistOriginalOutput(deviceName: string): void {
+  try {
+    writeFileSync(ORIGINAL_OUTPUT_FILE, deviceName, 'utf-8')
+  } catch { /* ignore */ }
+}
+
+function loadPersistedOriginalOutput(): string | null {
+  try {
+    if (existsSync(ORIGINAL_OUTPUT_FILE)) {
+      return readFileSync(ORIGINAL_OUTPUT_FILE, 'utf-8').trim() || null
+    }
+  } catch { /* ignore */ }
+  return null
+}
+
+function clearPersistedOriginalOutput(): void {
+  try {
+    if (existsSync(ORIGINAL_OUTPUT_FILE)) {
+      unlinkSync(ORIGINAL_OUTPUT_FILE)
+    }
+  } catch { /* ignore */ }
+}
+
+/**
+ * Recover from a previous crash where BlackHole was left as system output.
+ * Called at app startup — checks for the persisted original output file and restores if needed.
+ */
+export function recoverAudioFromCrash(): void {
+  if (process.platform !== 'darwin') return
+
+  const persisted = loadPersistedOriginalOutput()
+  if (!persisted) return
+
+  // Check if currently on BlackHole
+  try {
+    const current = execSync(`${SWITCH_AUDIO} -c -t output 2>/dev/null`, {
+      encoding: 'utf-8'
+    }).trim()
+    if (current.toLowerCase().includes('blackhole')) {
+      console.log(`[audio-setup] Crash recovery: restoring audio from BlackHole to "${persisted}"`)
+      execSync(`${SWITCH_AUDIO} -s "${persisted}" -t output 2>/dev/null`, {
+        encoding: 'utf-8'
+      })
+    }
+  } catch { /* ignore */ }
+
+  clearPersistedOriginalOutput()
+}
 
 /**
  * Check if system audio capture is properly configured.
@@ -44,7 +100,7 @@ export function checkAudioSetup(): AudioSetupStatus {
 
   // macOS
   try {
-    const hasSwitchAudio = existsSync('/opt/homebrew/bin/SwitchAudioSource')
+    const hasSwitchAudio = existsSync(SWITCH_AUDIO)
     const hasFFmpeg = existsSync('/opt/homebrew/bin/ffmpeg')
 
     if (!hasSwitchAudio) {
@@ -57,11 +113,11 @@ export function checkAudioSetup(): AudioSetupStatus {
       }
     }
 
-    const devices = execSync('SwitchAudioSource -a -t output 2>/dev/null', {
+    const devices = execSync(`${SWITCH_AUDIO} -a -t output 2>/dev/null`, {
       encoding: 'utf-8'
     }).trim()
 
-    const currentOutput = execSync('SwitchAudioSource -c -t output 2>/dev/null', {
+    const currentOutput = execSync(`${SWITCH_AUDIO} -c -t output 2>/dev/null`, {
       encoding: 'utf-8'
     }).trim()
 
@@ -118,7 +174,7 @@ export function enableSystemAudioCapture(): { success: boolean; error?: string }
 
   try {
     // Save current output
-    originalOutput = execSync('SwitchAudioSource -c -t output 2>/dev/null', {
+    originalOutput = execSync(`${SWITCH_AUDIO} -c -t output 2>/dev/null`, {
       encoding: 'utf-8'
     }).trim()
 
@@ -126,6 +182,9 @@ export function enableSystemAudioCapture(): { success: boolean; error?: string }
     if (originalOutput.toLowerCase().includes('blackhole')) {
       return { success: true }
     }
+
+    // Persist to disk so we can recover after a crash
+    persistOriginalOutput(originalOutput)
 
     // Find the speaker device index for ffmpeg
     // Get avfoundation device list
@@ -159,7 +218,7 @@ export function enableSystemAudioCapture(): { success: boolean; error?: string }
     }
 
     // Switch to BlackHole
-    execSync('SwitchAudioSource -s "BlackHole 2ch" -t output 2>/dev/null', {
+    execSync(`${SWITCH_AUDIO} -s "BlackHole 2ch" -t output 2>/dev/null`, {
       encoding: 'utf-8'
     })
 
@@ -210,16 +269,18 @@ export function disableSystemAudioCapture(): void {
     mirrorProc = null
   }
 
-  // Restore original output
-  if (originalOutput && !originalOutput.toLowerCase().includes('blackhole')) {
+  // Try in-memory value first, then fall back to persisted file
+  const deviceToRestore = originalOutput || loadPersistedOriginalOutput()
+
+  if (deviceToRestore && !deviceToRestore.toLowerCase().includes('blackhole')) {
     try {
-      execSync(`SwitchAudioSource -s "${originalOutput}" -t output 2>/dev/null`, {
+      execSync(`${SWITCH_AUDIO} -s "${deviceToRestore}" -t output 2>/dev/null`, {
         encoding: 'utf-8'
       })
     } catch {
       // Fallback to Mac mini Speakers
       try {
-        execSync('SwitchAudioSource -s "Mac mini Speakers" -t output 2>/dev/null', {
+        execSync(`${SWITCH_AUDIO} -s "Mac mini Speakers" -t output 2>/dev/null`, {
           encoding: 'utf-8'
         })
       } catch {
@@ -228,4 +289,5 @@ export function disableSystemAudioCapture(): void {
     }
   }
   originalOutput = null
+  clearPersistedOriginalOutput()
 }

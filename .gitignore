@@ -6,3 +6,4 @@ out/
 *.zip
 pipeline-data/
 models/
+build/embedded.provisionprofile

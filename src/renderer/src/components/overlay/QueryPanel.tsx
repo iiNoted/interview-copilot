@@ -19,7 +19,6 @@ export function QueryPanel(): React.JSX.Element {
     sourcethreadEnabled,
     toggleWebSearch,
     toggleSourcethread,
-    resumeText,
     resumeFilename,
     setResume,
     clearResume
@@ -37,7 +36,7 @@ export function QueryPanel(): React.JSX.Element {
     const cleanup = window.api.onFocusQueryInput(() => {
       inputRef.current?.focus()
     })
-    return cleanup
+    return () => { cleanup() }
   }, [])
 
   // Load persisted resume on mount

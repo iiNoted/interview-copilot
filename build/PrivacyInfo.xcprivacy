@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Privacy Tracking -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <!-- Collected Data Types -->
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+
+    <!-- Accessed API Types -->
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array/>
+
+    <!-- Required Reason APIs: Microphone -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Interview Copilot uses the microphone to transcribe interview audio in real time for live coaching.</string>
+
+    <!-- Network Usage -->
+    <key>NSPrivacyNetworkUsageDescription</key>
+    <string>Interview Copilot connects to AI services for response generation and runs a local server for the Remote View companion feature.</string>
+  </dict>
+</plist>

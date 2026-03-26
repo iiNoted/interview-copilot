@@ -9,19 +9,21 @@ export interface AppSettings {
   remoteViewEnabled: boolean
   remoteViewPort: number
   remoteViewToken: string | null
+  locale: string | null
 }
 
 const store = new Store<{ settings: AppSettings }>({
   defaults: {
     settings: {
-      aiBackend: 'openclaw',
+      aiBackend: 'anthropic',
       anthropicApiKey: null,
       preferredModel: 'claude-haiku-4-5-20251001',
       stripeCustomerId: null,
       onboardingComplete: false,
       remoteViewEnabled: false,
       remoteViewPort: 18791,
-      remoteViewToken: null
+      remoteViewToken: null,
+      locale: null
     }
   }
 })

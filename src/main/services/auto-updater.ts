@@ -1,15 +1,39 @@
 import { autoUpdater } from 'electron-updater'
-import { BrowserWindow, dialog } from 'electron'
+import { BrowserWindow, dialog, ipcMain } from 'electron'
+
+let updateStatus: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' = 'idle'
+let updateVersion: string | null = null
+let updateError: string | null = null
 
 export function setupAutoUpdater(mainWindow: BrowserWindow): void {
+  // Mac App Store builds use Apple's own update mechanism; disable electron-updater
+  if ((process as any).mas) return
+
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
 
+  autoUpdater.on('checking-for-update', () => {
+    updateStatus = 'checking'
+    updateError = null
+    mainWindow.webContents.send('updater:status', { status: updateStatus })
+  })
+
   autoUpdater.on('update-available', (info) => {
-    console.log(`Update available: v${info.version}`)
+    updateStatus = 'downloading'
+    updateVersion = info.version
+    mainWindow.webContents.send('updater:status', { status: updateStatus, version: info.version })
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    updateStatus = 'idle'
+    mainWindow.webContents.send('updater:status', { status: 'up-to-date' })
   })
 
   autoUpdater.on('update-downloaded', (info) => {
+    updateStatus = 'ready'
+    updateVersion = info.version
+    mainWindow.webContents.send('updater:status', { status: updateStatus, version: info.version })
+
     dialog
       .showMessageBox(mainWindow, {
         type: 'info',
@@ -26,7 +50,29 @@ export function setupAutoUpdater(mainWindow: BrowserWindow): void {
   })
 
   autoUpdater.on('error', (err) => {
-    console.error('Auto-updater error:', err.message)
+    updateStatus = 'error'
+    updateError = err.message
+    mainWindow.webContents.send('updater:status', { status: 'error', error: err.message })
+  })
+
+  // IPC handlers for manual update check + install
+  ipcMain.handle('updater:check', async () => {
+    try {
+      const result = await autoUpdater.checkForUpdates()
+      return { status: updateStatus, version: result?.updateInfo?.version || null }
+    } catch {
+      return { status: 'error', version: null }
+    }
+  })
+
+  ipcMain.handle('updater:install', () => {
+    if (updateStatus === 'ready') {
+      autoUpdater.quitAndInstall()
+    }
+  })
+
+  ipcMain.handle('updater:get-status', () => {
+    return { status: updateStatus, version: updateVersion, error: updateError }
   })
 
   // Check on launch

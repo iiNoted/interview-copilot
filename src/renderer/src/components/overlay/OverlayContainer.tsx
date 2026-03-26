@@ -65,7 +65,7 @@ export function OverlayContainer(): React.JSX.Element {
 
   useEffect(() => {
     const cleanup = window.api.onFocusQueryInput(() => {})
-    return cleanup
+    return () => { cleanup() }
   }, [])
 
   // Push state to remote view server (throttled 100ms)
@@ -78,6 +78,7 @@ export function OverlayContainer(): React.JSX.Element {
       window.api.pushRemoteViewState({
         transcript: state.transcript,
         detectedQuestions: state.detectedQuestions,
+        spawnedChats: state.spawnedChats,
         isTranscribing: state.isTranscribing,
         currentModel: state.currentModel,
         resumeFilename: state.resumeFilename,
@@ -311,7 +312,10 @@ export function OverlayContainer(): React.JSX.Element {
               {MODELS.map((model) => (
                 <DropdownMenuItem
                   key={model.id}
-                  onClick={() => setModel(model.id)}
+                  onClick={() => {
+                    setModel(model.id)
+                    window.api.updateSettings({ preferredModel: model.id })
+                  }}
                   className={currentModel === model.id ? 'bg-accent' : ''}
                 >
                   {model.label}

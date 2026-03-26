@@ -1,58 +1,42 @@
 import { BrowserWindow } from 'electron'
 import { getSettings } from './settings-store'
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
+const PROXY_URL = 'https://app.sourcethread.com/api/copilot/ai/chat'
 
 export async function streamChatAnthropic(
   window: BrowserWindow,
   requestId: string,
   messages: Array<{ role: string; content: string }>,
-  model: string = 'claude-haiku-4-5-20251001'
+  _model: string = 'claude-haiku-4-5-20251001'
 ): Promise<{ inputTokens: number; outputTokens: number }> {
   const settings = getSettings()
   const apiKey = settings.anthropicApiKey
   if (!apiKey) {
     window.webContents.send('ai:error', {
       id: requestId,
-      error: 'No Anthropic API key configured. Add one in Settings.'
+      error: 'No API key. Please re-login or resubscribe.'
     })
     return { inputTokens: 0, outputTokens: 0 }
   }
 
-  // Separate system message from conversation
-  const systemMsg = messages.find((m) => m.role === 'system')
-  const chatMessages = messages.filter((m) => m.role !== 'system')
-
-  const body: Record<string, unknown> = {
-    model,
-    max_tokens: 512,
-    stream: true,
-    messages: chatMessages.map((m) => ({ role: m.role, content: m.content }))
-  }
-  if (systemMsg) {
-    body.system = systemMsg.content
-  }
-
-  let inputTokens = 0
-  let outputTokens = 0
-
   try {
-    const response = await fetch(ANTHROPIC_API_URL, {
+    const response = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        Authorization: `Bearer ${apiKey}`
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ messages })
     })
 
     if (!response.ok) {
       const errText = await response.text()
-      window.webContents.send('ai:error', {
-        id: requestId,
-        error: `Anthropic API ${response.status}: ${errText}`
-      })
+      let errorMsg = `Server error ${response.status}`
+      try {
+        const errJson = JSON.parse(errText)
+        errorMsg = errJson.message || errJson.error || errorMsg
+      } catch {}
+      window.webContents.send('ai:error', { id: requestId, error: errorMsg })
       return { inputTokens: 0, outputTokens: 0 }
     }
 
@@ -80,23 +64,17 @@ export async function streamChatAnthropic(
 
         try {
           const event = JSON.parse(data)
-
-          if (event.type === 'content_block_delta' && event.delta?.text) {
+          if (event.content) {
             window.webContents.send('ai:stream-chunk', {
               id: requestId,
-              text: event.delta.text
+              text: event.content
             })
           }
-
-          if (event.type === 'message_start' && event.message?.usage) {
-            inputTokens = event.message.usage.input_tokens || 0
-          }
-
-          if (event.type === 'message_delta' && event.usage) {
-            outputTokens = event.usage.output_tokens || 0
+          if (event.error) {
+            window.webContents.send('ai:error', { id: requestId, error: event.error })
           }
         } catch {
-          // Skip malformed JSON lines
+          // Skip malformed SSE lines
         }
       }
     }
@@ -109,5 +87,6 @@ export async function streamChatAnthropic(
     })
   }
 
-  return { inputTokens, outputTokens }
+  // Server handles billing — no local token tracking needed
+  return { inputTokens: 0, outputTokens: 0 }
 }

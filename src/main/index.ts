@@ -1,4 +1,4 @@
-import { app, ipcMain, BrowserWindow, systemPreferences, shell, screen, dialog } from 'electron'
+import { app, ipcMain, BrowserWindow, systemPreferences, shell, dialog } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { basename } from 'path'
 import { parseDocumentFile } from './services/file-parser'
@@ -12,13 +12,15 @@ import {
   getLocalIpAddress
 } from './services/remote-view'
 import { saveTranscript, getTranscriptHistory, exportTranscript } from './services/transcript-store'
-import { createOverlayWindow } from './windows/overlay'
+import { getAuthUser, clearAuth } from './services/auth-store'
+import { startGoogleAuth } from './services/google-auth'
+import { createMainWindow } from './windows/main-window'
 import { registerHotkeys, unregisterHotkeys } from './services/hotkeys'
 import { createTray } from './services/tray'
 import { streamChat } from './services/openclaw-client'
 import { streamChatAnthropic } from './services/anthropic-client'
 import { startLiveTranscription, stopLiveTranscription, listAudioDevices, parseAudioDevices } from './services/transcription'
-import { checkAudioSetup, enableSystemAudioCapture, disableSystemAudioCapture } from './services/audio-setup'
+import { checkAudioSetup, enableSystemAudioCapture, disableSystemAudioCapture, recoverAudioFromCrash } from './services/audio-setup'
 import { saveResume, getResume, clearResume } from './services/resume-store'
 import { getSettings, updateSettings, type AppSettings } from './services/settings-store'
 import { trackQuery, getSessionUsage, getUsageHistory } from './services/usage-tracker'
@@ -30,65 +32,65 @@ import {
   getBillingState,
   updateBillingConfig,
   startWebhookServer,
-  stopWebhookServer
+  stopWebhookServer,
+  createFlatCheckoutSession,
+  getFlatBillingState,
+  checkFlatBillingFresh,
+  checkFlatBillingOnLaunch,
+  stopFlatPolling,
+  fetchCopilotApiKey
 } from './services/billing'
-import { getCategories, getCategoryDetail, getArticleContent, rankCategoriesByResume } from './services/pipeline-loader'
+import { getCategories, getCategoryDetail, getArticleContent, rankCategoriesByResume, rankCategoriesByContext, getResumeDataPack, getQualificationsDb, getQualificationArticleSnippet } from './services/pipeline-loader'
+import { searchJobs, getJobDetail } from './services/job-search'
 import { execSync } from 'child_process'
 import { setupAutoUpdater } from './services/auto-updater'
 
-let overlayWindow: BrowserWindow | null = null
+let mainWindow: BrowserWindow | null = null
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.sourcethread.interview-copilot')
+
+  // Recover from previous crash where BlackHole was left as system audio output
+  recoverAudioFromCrash()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // Create overlay
-  overlayWindow = createOverlayWindow()
+  // Create main window
+  mainWindow = createMainWindow()
 
   // Tray
-  createTray(overlayWindow)
+  createTray(mainWindow)
 
   // Global hotkeys
-  registerHotkeys(overlayWindow)
+  registerHotkeys(mainWindow)
 
   // Auto-updater (skip in dev)
   if (app.isPackaged) {
-    setupAutoUpdater(overlayWindow)
+    setupAutoUpdater(mainWindow)
   }
 
   // --- IPC Handlers ---
-
-  // Click-through toggle
-  ipcMain.on('window:set-ignore-mouse', (_event, ignore: boolean, options?: { forward: boolean }) => {
-    if (overlayWindow) {
-      overlayWindow.setIgnoreMouseEvents(ignore, options)
-    }
-  })
 
   // AI streaming query — routes to correct backend + reports billing
   ipcMain.handle(
     'ai:query',
     async (_event, { requestId, messages, model }: { requestId: string; messages: Array<{ role: string; content: string }>; model: string }) => {
-      if (!overlayWindow) return
+      if (!mainWindow) return
       const settings = getSettings()
       try {
-        if (settings.aiBackend === 'anthropic' && settings.anthropicApiKey) {
-          const usage = await streamChatAnthropic(overlayWindow, requestId, messages, model)
-          if (usage.inputTokens > 0 || usage.outputTokens > 0) {
-            trackQuery(model, usage.inputTokens, usage.outputTokens)
-            // Report to Stripe at 4x markup
-            const credits = calculateCredits(model, usage.inputTokens, usage.outputTokens)
-            reportUsage(credits)
-          }
+        if (settings.anthropicApiKey?.startsWith('cpk_')) {
+          // Subscribed user → SourceThread server proxy
+          await streamChatAnthropic(mainWindow, requestId, messages, model)
+          trackQuery(model, 0, 0)
         } else {
-          await streamChat(overlayWindow, requestId, messages as any, model)
+          // Direct Anthropic key (from settings, OpenClaw, or env) → call Anthropic API
+          await streamChat(mainWindow, requestId, messages as any, model)
           trackQuery(model, 0, 0)
         }
       } catch (err: any) {
-        overlayWindow.webContents.send('ai:error', {
+        mainWindow.webContents.send('ai:error', {
           id: requestId,
           error: err.message || 'Unknown error'
         })
@@ -111,20 +113,20 @@ app.whenReady().then(() => {
 
   // Live transcription — auto-enable system audio capture on macOS
   ipcMain.handle('transcription:start', (_event, captureDeviceId: number) => {
-    if (!overlayWindow) return
+    if (!mainWindow) return
 
     // On macOS, enable BlackHole + ffmpeg mirror before starting whisper
     if (process.platform === 'darwin') {
       const result = enableSystemAudioCapture()
       if (!result.success) {
-        overlayWindow.webContents.send('transcription:error', {
+        mainWindow.webContents.send('transcription:error', {
           error: result.error || 'Failed to enable audio capture'
         })
         return
       }
     }
 
-    startLiveTranscription(overlayWindow, captureDeviceId)
+    startLiveTranscription(mainWindow, captureDeviceId)
   })
 
   ipcMain.handle('transcription:stop', () => {
@@ -157,8 +159,8 @@ app.whenReady().then(() => {
 
   // Resume upload
   ipcMain.handle('resume:upload', async () => {
-    if (!overlayWindow) return null
-    const result = await dialog.showOpenDialog(overlayWindow, {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Upload Resume',
       filters: [
         { name: 'Documents', extensions: ['pdf', 'docx', 'doc', 'txt', 'md'] }
@@ -184,10 +186,17 @@ app.whenReady().then(() => {
     clearResume()
   })
 
+  // Resume: save pasted text directly
+  ipcMain.handle('resume:save-text', (_event, text: string) => {
+    if (!text || !text.trim()) return null
+    const saved = saveResume(text.trim(), 'Pasted text')
+    return { text: saved.text, filename: saved.filename }
+  })
+
   // Job Description upload
   ipcMain.handle('job:upload', async () => {
-    if (!overlayWindow) return null
-    const result = await dialog.showOpenDialog(overlayWindow, {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
       title: 'Upload Job Description',
       filters: [
         { name: 'Documents', extensions: ['pdf', 'docx', 'doc', 'txt', 'md'] }
@@ -213,13 +222,62 @@ app.whenReady().then(() => {
     clearJobDescription()
   })
 
+  // Job: save pasted text directly
+  ipcMain.handle('job:save-text', (_event, text: string) => {
+    if (!text || !text.trim()) return null
+    const saved = saveJobDescription(text.trim(), 'Pasted text')
+    return { text: saved.text, filename: saved.filename }
+  })
+
+  // Parse a dropped file (used by drag & drop in renderer)
+  ipcMain.handle('file:parse-dropped', async (_event, filePath: string) => {
+    try {
+      const filename = basename(filePath)
+      const parsed = await parseDocumentFile(filePath)
+      if ('error' in parsed) return { error: parsed.error }
+      return { text: parsed.text, filename }
+    } catch {
+      return { error: 'Failed to parse file' }
+    }
+  })
+
+  // Terms acceptance (stored separately from settings for legal clarity)
+  const termsStore = new (require('electron-store'))({ defaults: { termsAcceptedAt: null } })
+  ipcMain.handle('terms:get-accepted', () => {
+    return !!termsStore.get('termsAcceptedAt')
+  })
+  ipcMain.handle('terms:accept', () => {
+    termsStore.set('termsAcceptedAt', new Date().toISOString())
+  })
+
+  // App info
+  ipcMain.handle('app:get-version', () => {
+    return app.getVersion()
+  })
+
   // Settings
   ipcMain.handle('settings:get', () => {
     return getSettings()
   })
 
   ipcMain.handle('settings:update', (_event, partial: Record<string, unknown>) => {
-    updateSettings(partial as any)
+    // Whitelist allowed keys — prevent renderer from overwriting sensitive fields
+    const ALLOWED_SETTINGS_KEYS = new Set([
+      'aiBackend', 'anthropicApiKey', 'preferredModel', 'onboardingComplete',
+      'remoteViewEnabled', 'remoteViewPort', 'locale'
+    ])
+    const sanitized: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(partial)) {
+      if (ALLOWED_SETTINGS_KEYS.has(key)) {
+        sanitized[key] = value
+      }
+    }
+    updateSettings(sanitized as any)
+  })
+
+  // System locale
+  ipcMain.handle('system:get-locale', () => {
+    return app.getLocale()
   })
 
   // Usage tracking
@@ -248,12 +306,62 @@ app.whenReady().then(() => {
     await openCustomerPortal()
   })
 
+  // Flat subscription ($0.99/month)
+  ipcMain.handle('billing:create-flat-checkout', async (_event, email: string) => {
+    return await createFlatCheckoutSession(email)
+  })
+
+  ipcMain.handle('billing:get-flat-state', () => {
+    return getFlatBillingState()
+  })
+
+  ipcMain.handle('billing:check-flat-fresh', async (_event, email: string) => {
+    return checkFlatBillingFresh(email)
+  })
+
+  ipcMain.handle('billing:fetch-api-key', async (_event, email: string, customerId: string) => {
+    return fetchCopilotApiKey(email, customerId)
+  })
+
+  // Auth
+  ipcMain.handle('auth:get-user', () => {
+    return getAuthUser()
+  })
+
+  ipcMain.handle('auth:google-login', async () => {
+    if (!mainWindow) return null
+    try {
+      return await startGoogleAuth(mainWindow)
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('auth:logout', () => {
+    clearAuth()
+  })
+
+  // Check flat subscription status on launch
+  checkFlatBillingOnLaunch()
+
   // Start webhook server for Stripe events
   startWebhookServer()
 
+  // Job Search
+  ipcMain.handle('jobs:search', async (_event, params: { query: string; remote?: boolean; country?: string }) => {
+    return await searchJobs(params)
+  })
+
+  ipcMain.handle('jobs:get-detail', (_event, id: string) => {
+    return getJobDetail(id)
+  })
+
   // Knowledge Base (pipeline data)
-  ipcMain.handle('kb:get-categories', (_event, resumeText?: string) => {
+  ipcMain.handle('kb:get-categories', (_event, resumeText?: string, jobText?: string) => {
     const cats = getCategories()
+    if (jobText || resumeText) {
+      return rankCategoriesByContext(cats, resumeText || null, jobText || null)
+    }
     return rankCategoriesByResume(cats, resumeText || null)
   })
 
@@ -263,6 +371,18 @@ app.whenReady().then(() => {
 
   ipcMain.handle('kb:get-article', (_event, categoryKey: string, filename: string) => {
     return getArticleContent(categoryKey, filename)
+  })
+
+  ipcMain.handle('kb:get-qualifications', () => {
+    return getQualificationsDb()
+  })
+
+  ipcMain.handle('kb:get-qualification-snippet', (_event, category: string, qualId: string) => {
+    return getQualificationArticleSnippet(category, qualId)
+  })
+
+  ipcMain.handle('resume:get-data-pack', (_event, targetTitle: string, resumeText: string | null) => {
+    return getResumeDataPack(targetTitle, resumeText)
   })
 
   // Remote View
@@ -309,7 +429,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('transcript:export', (_event, id: string) => {
-    return exportTranscript(id, overlayWindow)
+    return exportTranscript(id, mainWindow)
   })
 
   // Onboarding
@@ -329,7 +449,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('onboarding:run-audio-test', async () => {
-    if (!overlayWindow) return { success: false, error: 'No window' }
+    if (!mainWindow) return { success: false, error: 'No window' }
 
     try {
       // Enable audio capture
@@ -346,7 +466,7 @@ app.whenReady().then(() => {
       } catch { /* ignore */ }
 
       // Start transcription briefly
-      startLiveTranscription(overlayWindow, 0)
+      startLiveTranscription(mainWindow, 0)
 
       // Wait 5 seconds
       await new Promise((resolve) => setTimeout(resolve, 5000))
@@ -367,37 +487,37 @@ app.whenReady().then(() => {
     updateSettings({ onboardingComplete: true } as Partial<AppSettings>)
   })
 
+  // Overlay minimize/restore
+  ipcMain.handle('overlay:minimize', () => {
+    if (mainWindow) {
+      mainWindow.setSize(80, 80)
+      mainWindow.setAlwaysOnTop(true, 'floating')
+    }
+  })
+
+  ipcMain.handle('overlay:restore', () => {
+    if (mainWindow) {
+      mainWindow.setSize(1200, 800)
+      mainWindow.setAlwaysOnTop(false)
+      mainWindow.center()
+    }
+  })
+
   // Window positioning
   ipcMain.on('window:set-position', (_event, x: number, y: number) => {
-    overlayWindow?.setPosition(Math.round(x), Math.round(y))
+    mainWindow?.setPosition(Math.round(x), Math.round(y))
   })
 
   ipcMain.on('window:set-size', (_event, w: number, h: number) => {
-    overlayWindow?.setSize(Math.round(w), Math.round(h))
-  })
-
-  // Minimize / restore overlay
-  ipcMain.on('overlay:minimize', () => {
-    if (!overlayWindow) return
-    overlayWindow.setSize(60, 60)
-    const display = screen.getPrimaryDisplay()
-    const { width, height } = display.workAreaSize
-    overlayWindow.setPosition(width - 80, height - 80)
-    overlayWindow.setIgnoreMouseEvents(false)
-  })
-
-  ipcMain.on('overlay:restore', () => {
-    if (!overlayWindow) return
-    const display = screen.getPrimaryDisplay()
-    const { width } = display.workAreaSize
-    overlayWindow.setSize(800, 620)
-    overlayWindow.setPosition(width - 820, 80)
-    overlayWindow.setIgnoreMouseEvents(false)
+    mainWindow?.setSize(Math.round(w), Math.round(h))
   })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      overlayWindow = createOverlayWindow()
+      mainWindow = createMainWindow()
+    } else if (mainWindow) {
+      mainWindow.show()
+      mainWindow.focus()
     }
   })
 })
@@ -407,7 +527,47 @@ app.on('will-quit', () => {
   stopLiveTranscription()
   disableSystemAudioCapture()
   stopWebhookServer()
+  stopFlatPolling()
   stopRemoteViewServer()
+})
+
+// Crash recovery: restore audio output if the app crashes or is force-killed.
+// Without these handlers, BlackHole stays as the system output and the user loses audio.
+function emergencyAudioCleanup(): void {
+  try {
+    disableSystemAudioCapture()
+  } catch {
+    // Last resort: try to restore speakers directly
+    try {
+      require('child_process').execSync(
+        'SwitchAudioSource -s "Mac mini Speakers" -t output 2>/dev/null',
+        { encoding: 'utf-8' }
+      )
+    } catch {
+      /* nothing more we can do */
+    }
+  }
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception — restoring audio:', err)
+  emergencyAudioCleanup()
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection — restoring audio:', reason)
+  emergencyAudioCleanup()
+})
+
+process.on('SIGINT', () => {
+  emergencyAudioCleanup()
+  process.exit(0)
+})
+
+process.on('SIGTERM', () => {
+  emergencyAudioCleanup()
+  process.exit(0)
 })
 
 app.on('window-all-closed', () => {

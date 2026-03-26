@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<style>
+  @page { size: A4; margin: 20mm 15mm; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #1a1a2e; }
+  h1 { font-size: 22pt; text-align: center; margin-bottom: 6px; color: #0f0f23; }
+  h2 { font-size: 15pt; color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 4px; margin-top: 28px; page-break-after: avoid; }
+  h3 { font-size: 12pt; color: #333; margin-top: 16px; page-break-after: avoid; }
+  .subtitle { text-align: center; color: #666; font-size: 10pt; margin-bottom: 24px; }
+  .step { background: #f8f7ff; border-left: 4px solid #7c3aed; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; }
+  .step-num { font-weight: 700; color: #7c3aed; }
+  .result { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 10px 14px; margin: 8px 0; font-family: 'SF Mono', Menlo, monospace; font-size: 9pt; white-space: pre-wrap; word-break: break-all; }
+  .result-fail { background: #fef2f2; border-color: #fca5a5; }
+  .endpoint { font-family: 'SF Mono', Menlo, monospace; font-size: 9pt; background: #eee; padding: 2px 6px; border-radius: 3px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 8pt; font-weight: 600; }
+  .badge-pass { background: #dcfce7; color: #166534; }
+  .badge-live { background: #dbeafe; color: #1e40af; }
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 10px 0; }
+  .metric { background: #f1f5f9; border-radius: 8px; padding: 12px; text-align: center; }
+  .metric-val { font-size: 20pt; font-weight: 700; color: #7c3aed; }
+  .metric-label { font-size: 8pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9.5pt; }
+  th { background: #f1f5f9; padding: 6px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+  td { padding: 6px 10px; border-bottom: 1px solid #e2e8f0; }
+  .file-list { font-family: 'SF Mono', Menlo, monospace; font-size: 9pt; }
+  .check { color: #16a34a; }
+  .x { color: #dc2626; }
+  .pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Interview Copilot — Workflow Report</h1>
+<p class="subtitle">Full-Stack Implementation Audit &amp; Test Results<br/>
+Generated: March 23, 2026 — All endpoints tested live against production</p>
+
+<!-- ============================================== -->
+<h2>1. Marketing Website (copilot.sourcethread.com)</h2>
+<p>SSR pages served from FeedFlow server via copilot-pages.ts. All pages verified live.</p>
+
+<table>
+<tr><th>Page</th><th>URL</th><th>Status</th><th>SEO</th></tr>
+<tr><td>Landing Page</td><td class="endpoint">/</td><td><span class="badge badge-pass">LIVE</span></td><td>OG tags, JSON-LD FAQ + SoftwareApplication schema</td></tr>
+<tr><td>Features</td><td class="endpoint">/features</td><td><span class="badge badge-pass">LIVE</span></td><td>OG tags, canonical</td></tr>
+<tr><td>Pricing</td><td class="endpoint">/pricing</td><td><span class="badge badge-pass">LIVE</span></td><td>OG tags, JSON-LD, canonical</td></tr>
+<tr><td>Interactive Demo</td><td class="endpoint">/demo</td><td><span class="badge badge-pass">LIVE</span></td><td>OG tags, canonical</td></tr>
+<tr><td>Compare (vs Final Round AI)</td><td class="endpoint">/compare/final-round-ai</td><td><span class="badge badge-pass">LIVE</span></td><td>OG tags, canonical</td></tr>
+<tr><td>Terms of Service</td><td class="endpoint">/terms</td><td><span class="badge badge-pass">LIVE</span></td><td>Legal page, canonical</td></tr>
+<tr><td>Privacy Policy</td><td class="endpoint">/privacy</td><td><span class="badge badge-pass">LIVE</span></td><td>Legal page, canonical</td></tr>
+<tr><td>Sitemap</td><td class="endpoint">/sitemap.xml</td><td><span class="badge badge-pass">LIVE</span></td><td>XML sitemap for crawlers</td></tr>
+</table>
+
+<div class="result">LIVE TEST: curl -s "https://copilot.sourcethread.com/" → 200 OK
+  Title: "Interview Copilot — Free AI Interview Assistant with Real-Time Transcription"
+
+LIVE TEST: curl -s "https://copilot.sourcethread.com/demo" → 200 OK
+  Title: "Interactive Demo — Interview Copilot"
+
+LIVE TEST: curl -s "https://copilot.sourcethread.com/pricing" → 200 OK
+  Title: "Pricing — Interview Copilot | All-in-One Job Search Platform"</div>
+
+<!-- ============================================== -->
+<h2>2. Google OAuth Authentication Flow</h2>
+<p>Users authenticate via Google OAuth through the FeedFlow server. The Electron app opens a BrowserWindow popup.</p>
+
+<div class="step"><span class="step-num">Step 1:</span> User clicks "Sign in with Google" in the Electron app</div>
+<div class="step"><span class="step-num">Step 2:</span> BrowserWindow opens → <span class="endpoint">https://app.sourcethread.com/api/auth/google?returnUrl=/api/copilot/auth/callback</span></div>
+<div class="step"><span class="step-num">Step 3:</span> User completes Google consent screen (accounts.google.com)</div>
+<div class="step"><span class="step-num">Step 4:</span> Google redirects → <span class="endpoint">/api/auth/google/callback</span> → Server validates token via Passport.js</div>
+<div class="step"><span class="step-num">Step 5:</span> Server redirects to <span class="endpoint">/api/copilot/auth/callback</span> → Returns JSON user info</div>
+<div class="step"><span class="step-num">Step 6:</span> Electron reads JSON via <code>webContents.executeJavaScript('document.body.innerText')</code></div>
+<div class="step"><span class="step-num">Step 7:</span> User info saved to electron-store (persists across restarts)</div>
+
+<h3>Auth Callback Endpoint Test</h3>
+<div class="result">LIVE TEST: curl -s "https://app.sourcethread.com/api/copilot/auth/callback"
+
+Response: {"error":"not_authenticated"}
+Status: Working correctly — returns error when no session cookie</div>
+
+<h3>Security: Open Redirect Prevention (FIXED)</h3>
+<div class="result">BEFORE FIX: returnUrl accepted any URL → could redirect to malicious sites
+AFTER FIX: returnUrl validated — must start with '/' and not '//' (local paths only)
+
+Code (routes.ts lines 1000-1003):
+  if (typeof returnUrl !== 'string' || !returnUrl.startsWith('/') || returnUrl.startsWith('//')) {
+    returnUrl = '/';
+  }</div>
+
+<h3>Files Implemented</h3>
+<table>
+<tr><th>File</th><th>Purpose</th></tr>
+<tr><td class="file-list">src/main/services/auth-store.ts</td><td>Persists user identity via electron-store (getAuthUser, setAuthUser, clearAuth)</td></tr>
+<tr><td class="file-list">src/main/services/google-auth.ts</td><td>BrowserWindow OAuth popup, JSON callback reader, returnUrl loss fallback</td></tr>
+<tr><td class="file-list">src/main/index.ts</td><td>IPC handlers: auth:get-user, auth:google-login, auth:logout</td></tr>
+<tr><td class="file-list">src/preload/index.ts</td><td>contextBridge: getAuthUser(), googleLogin(), logout()</td></tr>
+<tr><td class="file-list">server/routes.ts</td><td>GET /api/copilot/auth/callback + open redirect fix</td></tr>
+</table>
+
+<!-- ============================================== -->
+<div class="pagebreak"></div>
+<h2>3. Stripe Subscription &amp; Payment Flow</h2>
+<p>$0.99/month flat subscription via Stripe. Handles checkout, webhooks, and cancellation.</p>
+
+<div class="step"><span class="step-num">Step 1:</span> After login, app checks subscription → <span class="endpoint">GET /api/copilot/billing/flat-status?email={email}</span></div>
+<div class="step"><span class="step-num">Step 2:</span> If not subscribed → Paywall screen shown with features + $0.99/month pricing</div>
+<div class="step"><span class="step-num">Step 3:</span> User clicks "Subscribe" → <span class="endpoint">POST /api/copilot/billing/create-flat-checkout</span> → Stripe Checkout URL returned</div>
+<div class="step"><span class="step-num">Step 4:</span> Stripe Checkout opens in system browser (supports Apple Pay, Google Pay, cards)</div>
+<div class="step"><span class="step-num">Step 5:</span> User completes payment → Stripe sends webhook to <span class="endpoint">POST /api/copilot/webhook</span></div>
+<div class="step"><span class="step-num">Step 6:</span> Webhook upserts subscription in copilot_subscriptions table</div>
+<div class="step"><span class="step-num">Step 7:</span> App polls flat-status every 3s (max 10 min timeout) → detects active → unlocks app</div>
+
+<h3>Billing Endpoint Tests</h3>
+<div class="result">LIVE TEST: curl -s "https://app.sourcethread.com/api/copilot/billing/flat-status?email=test@example.com"
+
+Response: {"active":false}
+Status: Working — correctly returns inactive for non-subscriber</div>
+
+<h3>Cancellation Flow</h3>
+<div class="step"><span class="step-num">Cancel:</span> User cancels in Stripe → webhook fires → status set to "canceled" in DB</div>
+<div class="step"><span class="step-num">Next Launch:</span> App calls flat-status → server returns active:false → paywall re-shown</div>
+<div class="step"><span class="step-num">Key Fix:</span> checkFlatBillingOnLaunch now ALWAYS checks server (not just when inactive) — handles both activation AND cancellation</div>
+
+<h3>Security: CORS Restriction (FIXED)</h3>
+<div class="result">BEFORE FIX: Any origin echoed back in Access-Control-Allow-Origin header
+AFTER FIX: Only allowed origins: copilot.sourcethread.com, app.sourcethread.com, localhost:4000
+
+Code (copilot-billing.ts):
+  const ALLOWED_ORIGINS = new Set([
+    "https://copilot.sourcethread.com",
+    "https://app.sourcethread.com",
+    "http://localhost:4000",
+  ]);</div>
+
+<h3>Stripe Configuration</h3>
+<table>
+<tr><th>Config</th><th>Value</th></tr>
+<tr><td>Price ID</td><td class="endpoint">price_1TELdW2ZtUCetgVGDzNSoEkX</td></tr>
+<tr><td>Amount</td><td>$0.99/month recurring</td></tr>
+<tr><td>Webhook Events</td><td>checkout.session.completed, customer.subscription.updated, customer.subscription.deleted</td></tr>
+<tr><td>Payment Methods</td><td>Card, Apple Pay, Google Pay</td></tr>
+</table>
+
+<!-- ============================================== -->
+<h2>4. Desktop App — User Journey</h2>
+<p>The SubscriptionGate component controls the entire entry flow: login → paywall → ready.</p>
+
+<h3>Screen 1: Login</h3>
+<div class="step">Full-screen dark UI with centered card. Purple shield icon + "Interview Copilot" title. White "Sign in with Google" button with Google logo SVG. Links to Terms of Service and Privacy Policy at bottom.</div>
+
+<h3>Screen 2: Paywall (shown if no active subscription)</h3>
+<div class="step">Shows logged-in user avatar + name + email at top with logout button. "Interview Copilot Pro" heading. Feature list with green checkmarks: Job search, Interview prep (22+ topics), AI resume builder, Live transcription + coaching. $0.99/month pricing card with Subscribe button. Payment waiting spinner with 10-minute timeout.</div>
+
+<h3>Screen 3: App Ready</h3>
+<div class="step">Full app unlocked — all tabs accessible (Transcript, AI Sidebar, Prep, Knowledge, Query). Settings panel shows Account section with avatar, name, email, and Sign Out button.</div>
+
+<h3>Restart Behavior</h3>
+<div class="step">Auth persisted via electron-store → user stays logged in. Subscription checked against server on every launch → handles activation AND cancellation. No re-login needed unless user explicitly signs out.</div>
+
+<!-- ============================================== -->
+<div class="pagebreak"></div>
+<h2>5. Mission Control Analytics Dashboard</h2>
+<p>Real-time analytics for Interview Copilot displayed on the Mission Control landing page.</p>
+
+<h3>Live Data (queried just now)</h3>
+<div class="metric-grid">
+  <div class="metric"><div class="metric-val">$0.00</div><div class="metric-label">MRR</div></div>
+  <div class="metric"><div class="metric-val">17</div><div class="metric-label">Google Auth Users</div></div>
+  <div class="metric"><div class="metric-val">0</div><div class="metric-label">Active Subscriptions</div></div>
+</div>
+<div class="metric-grid">
+  <div class="metric"><div class="metric-val">46</div><div class="metric-label">Views Today</div></div>
+  <div class="metric"><div class="metric-val">192</div><div class="metric-label">Views This Week</div></div>
+  <div class="metric"><div class="metric-val">1,883</div><div class="metric-label">Views This Month</div></div>
+</div>
+
+<h3>Traffic Sources (Last 7 Days)</h3>
+<table>
+<tr><th>Source</th><th>Views</th></tr>
+<tr><td>Direct</td><td>188</td></tr>
+<tr><td>Google</td><td>2</td></tr>
+<tr><td>aisearchindex.space</td><td>1</td></tr>
+<tr><td>sourcethread.com</td><td>1</td></tr>
+</table>
+
+<h3>Device Breakdown</h3>
+<table>
+<tr><th>Device</th><th>Count</th></tr>
+<tr><td>Desktop</td><td>116 (60%)</td></tr>
+<tr><td>Mobile</td><td>76 (40%)</td></tr>
+</table>
+
+<h3>Top Countries</h3>
+<table>
+<tr><th>Country</th><th>Views</th></tr>
+<tr><td>US</td><td>108</td></tr>
+<tr><td>CN</td><td>23</td></tr>
+<tr><td>SG</td><td>9</td></tr>
+<tr><td>IN</td><td>8</td></tr>
+<tr><td>DE</td><td>7</td></tr>
+<tr><td>FR</td><td>6</td></tr>
+<tr><td>BE</td><td>5</td></tr>
+<tr><td>KZ</td><td>4</td></tr>
+</table>
+
+<h3>Conversion Funnel (Last 7 Days)</h3>
+<table>
+<tr><th>Stage</th><th>Unique Sessions</th></tr>
+<tr><td>Landing Page</td><td>185</td></tr>
+<tr><td>Pricing Page</td><td>0</td></tr>
+<tr><td>Demo Page</td><td>0</td></tr>
+<tr><td>Subscribed</td><td>0</td></tr>
+</table>
+
+<h3>API Endpoint</h3>
+<div class="result">GET http://localhost:3000/api/copilot-analytics
+
+Returns: subscriptions, dailySubs, traffic, topPages, referrers, devices, countries, funnel, copilotUsers
+Source: Direct PostgreSQL queries against feedflow DB via psql</div>
+
+<!-- ============================================== -->
+<div class="pagebreak"></div>
+<h2>6. Security Audit — All Critical Issues Fixed</h2>
+
+<table>
+<tr><th>Issue</th><th>Severity</th><th>Status</th><th>Fix</th></tr>
+<tr><td>Open redirect in OAuth returnUrl</td><td>Critical</td><td><span class="check">FIXED</span></td><td>Validate returnUrl is local path only</td></tr>
+<tr><td>Unrestricted CORS on billing endpoints</td><td>Critical</td><td><span class="check">FIXED</span></td><td>Whitelist allowed origins</td></tr>
+<tr><td>Payment poll runs forever (no timeout)</td><td>High</td><td><span class="check">FIXED</span></td><td>10-minute timeout with user message</td></tr>
+<tr><td>window.location.reload() for logout</td><td>Medium</td><td><span class="check">FIXED</span></td><td>React state reset (setAuthUser(null))</td></tr>
+<tr><td>Subscription cancellation not detected</td><td>High</td><td><span class="check">FIXED</span></td><td>Always check server on launch</td></tr>
+</table>
+
+<!-- ============================================== -->
+<h2>7. Complete File Manifest</h2>
+<p>All files created or modified in this implementation.</p>
+
+<table>
+<tr><th>File</th><th>Action</th><th>Purpose</th></tr>
+<tr><td class="file-list">server/routes.ts</td><td>Modified</td><td>Auth callback endpoint + open redirect fix</td></tr>
+<tr><td class="file-list">server/copilot-billing.ts</td><td>Modified</td><td>CORS origin whitelist</td></tr>
+<tr><td class="file-list">server/copilot-pages.ts</td><td>Modified</td><td>Demo page route + sitemap entry</td></tr>
+<tr><td class="file-list">src/main/services/auth-store.ts</td><td>Created</td><td>Persistent auth storage (electron-store)</td></tr>
+<tr><td class="file-list">src/main/services/google-auth.ts</td><td>Created</td><td>OAuth BrowserWindow popup flow</td></tr>
+<tr><td class="file-list">src/main/index.ts</td><td>Modified</td><td>Auth IPC handlers + unused import fix</td></tr>
+<tr><td class="file-list">src/preload/index.ts</td><td>Modified</td><td>Auth bridge methods (getAuthUser, googleLogin, logout)</td></tr>
+<tr><td class="file-list">src/renderer/.../SubscriptionGate.tsx</td><td>Rewritten</td><td>Login → Paywall → Ready flow + poll timeout</td></tr>
+<tr><td class="file-list">src/renderer/.../SettingsPanel.tsx</td><td>Modified</td><td>Account section + logout fix</td></tr>
+<tr><td class="file-list">src/main/services/billing.ts</td><td>Modified</td><td>Auth email sync + always-check-server</td></tr>
+<tr><td class="file-list">src/renderer/.../AISidebar.tsx</td><td>Modified</td><td>Removed unused currentModel</td></tr>
+<tr><td class="file-list">src/renderer/.../KnowledgePanel.tsx</td><td>Modified</td><td>Fixed CategorySummary interface</td></tr>
+<tr><td class="file-list">src/renderer/.../PrepTab.tsx</td><td>Modified</td><td>Made articleCount optional</td></tr>
+<tr><td class="file-list">src/renderer/.../OverlayContainer.tsx</td><td>Modified</td><td>Fixed useEffect cleanup return</td></tr>
+<tr><td class="file-list">src/renderer/.../QueryPanel.tsx</td><td>Modified</td><td>Fixed cleanup + removed unused import</td></tr>
+<tr><td class="file-list">src/renderer/.../TranscriptPanel.tsx</td><td>Modified</td><td>Fixed useEffect cleanup return</td></tr>
+<tr><td class="file-list">~/.mission-control/.../copilot-analytics/route.ts</td><td>Created</td><td>Analytics API (psql → JSON)</td></tr>
+<tr><td class="file-list">~/.mission-control/.../page.tsx</td><td>Modified</td><td>Dashboard widgets (Revenue, Traffic, Audience)</td></tr>
+</table>
+
+<!-- ============================================== -->
+<h2>8. Build Verification</h2>
+<div class="result">Electron App Build:
+  Main:     out/main/index.js      72.33 kB    ✓ 21 modules
+  Preload:  out/preload/index.js    7.56 kB    ✓ 1 module
+  Renderer: out/renderer/           1,528 kB   ✓ 2,129 modules
+
+FeedFlow Server Build:
+  ✓ Built in 4.38s — all chunks generated
+
+Both builds: CLEAN (zero TypeScript errors)</div>
+
+</body>
+</html>

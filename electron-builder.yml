@@ -11,13 +11,15 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
-  - resources/**
+  - "**/*.node"
 extraResources:
   - from: "pipeline-data/"
     to: "pipeline-data"
     filter:
       - "*/articles/*.md"
+      - "*/qualification_articles/*.md"
       - "*/skill/skill_scaffold.json"
+      - "*/qualifications.json"
 win:
   executableName: interview-copilot
 nsis:
@@ -26,14 +28,28 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+    - target: mas
+      arch:
+        - arm64
+  identity: "Ezra Stone"
+  entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-    - LSUIElement: true
-  notarize: false
+    - LSUIElement: false
+  notarize:
+    teamId: ${env.APPLE_TEAM_ID}
+mas:
+  entitlements: build/entitlements.mas.plist
+  entitlementsInherit: build/entitlements.mas.inherit.plist
+  provisioningProfile: build/embedded.provisionprofile
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
@@ -41,7 +57,7 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: SourceThread
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}

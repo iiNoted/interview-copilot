@@ -1,16 +1,22 @@
 import { useState, useEffect, useRef } from 'react'
 import { useOverlayStore } from '@renderer/stores/overlay-store'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
-import { ArrowLeft, Search, BookOpen, ChevronRight, FileText } from 'lucide-react'
+import { ArrowLeft, Search, BookOpen, ChevronRight, FileText, Radar, List } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { QualificationChart } from './QualificationChart'
+import { extractQualifications } from '@renderer/lib/jd-parser'
 
 interface CategorySummary {
   key: string
   displayName: string
   role: string
-  articleCount: number
+  articleCount?: number
   topicCount: number
+  totalEvidence?: number
+  totalClaims?: number
+  totalResolutions?: number
+  hasFunctionCatalog?: boolean
 }
 
 interface ArticleSummary {
@@ -71,7 +77,7 @@ function CategoryList({
                 <div className="text-xs font-medium text-white/80 truncate">
                   {cat.displayName}
                 </div>
-                {cat.articleCount > 0 && (
+                {(cat.articleCount ?? 0) > 0 && (
                   <div className="text-[10px] text-white/30">
                     {cat.articleCount} guide{cat.articleCount !== 1 ? 's' : ''}
                   </div>
@@ -201,21 +207,121 @@ function ArticleReader({
   )
 }
 
+// --- Qualification Map ---
+function QualificationMap({
+  onSelectCategory
+}: {
+  onSelectCategory: (key: string) => void
+}): React.JSX.Element {
+  const { extractedQualifications } = useOverlayStore()
+
+  const chartData = extractedQualifications.map((q) => ({
+    keyword: q.keyword,
+    displayName: q.displayName,
+    coverageScore: q.coverageScore,
+    resumeMatch: q.resumeMatch,
+    category: q.category
+  }))
+
+  function handleAxisClick(qual: { category: string }): void {
+    onSelectCategory(qual.category)
+  }
+
+  return (
+    <ScrollArea className="flex-1 min-h-0">
+      <div className="p-3 space-y-3">
+        {/* Radar chart */}
+        <div className="flex justify-center">
+          <QualificationChart
+            qualifications={chartData}
+            onClickAxis={handleAxisClick}
+            size={280}
+          />
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-3 justify-center text-[9px] text-white/40">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-500/60" /> Strong (60+)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-yellow-500/60" /> Moderate (30-59)
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-red-500/60" /> Gap (&lt;30)
+          </span>
+        </div>
+
+        {/* Qualification list below chart */}
+        <div className="space-y-1">
+          {extractedQualifications.map((q) => (
+            <button
+              key={`${q.category}-${q.keyword}`}
+              onClick={() => onSelectCategory(q.category)}
+              className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left hover:bg-white/5 transition-colors"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-white/80 truncate">
+                  {q.displayName}
+                </div>
+                <div className="text-[10px] text-white/30">{q.category}</div>
+              </div>
+              {/* Coverage bar */}
+              <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${
+                    q.coverageScore >= 60
+                      ? 'bg-green-500/60'
+                      : q.coverageScore >= 30
+                        ? 'bg-yellow-500/60'
+                        : 'bg-red-500/60'
+                  }`}
+                  style={{ width: `${q.coverageScore}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-white/30 w-6 text-right">{q.coverageScore}</span>
+              {q.resumeMatch && (
+                <span className="text-[9px] bg-blue-500/20 text-blue-300 px-1 rounded">R</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </ScrollArea>
+  )
+}
+
 // --- Main KnowledgePanel ---
 export function KnowledgePanel(): React.JSX.Element {
-  const { resumeText } = useOverlayStore()
+  const { resumeText, jobText, extractedQualifications, knowledgeView, setExtractedQualifications, setKnowledgeView } = useOverlayStore()
   const [categories, setCategories] = useState<CategorySummary[]>([])
   const [search, setSearch] = useState('')
   const [selectedDetail, setSelectedDetail] = useState<CategoryDetail | null>(null)
   const [selectedArticle, setSelectedArticle] = useState<ArticleSummary | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Load categories
   useEffect(() => {
-    window.api.getCategories(resumeText || undefined).then((cats) => {
+    window.api.getCategories(resumeText || undefined, jobText || undefined).then((cats) => {
       setCategories(cats)
       setLoading(false)
     })
-  }, [resumeText])
+  }, [resumeText, jobText])
+
+  // Auto-extract qualifications when JD changes
+  useEffect(() => {
+    if (!jobText) {
+      setExtractedQualifications([])
+      if (knowledgeView === 'map') setKnowledgeView('browse')
+      return
+    }
+
+    window.api.getQualificationsDb().then((db) => {
+      const quals = extractQualifications(jobText, db, resumeText)
+      setExtractedQualifications(quals)
+      if (quals.length >= 3) setKnowledgeView('map')
+    })
+  }, [jobText, resumeText, setExtractedQualifications, setKnowledgeView, knowledgeView])
 
   async function handleSelectCategory(key: string): Promise<void> {
     const detail = await window.api.getCategoryDetail(key)
@@ -256,15 +362,50 @@ export function KnowledgePanel(): React.JSX.Element {
     )
   }
 
-  // Category list
+  // Has JD with qualifications → show view toggle
+  const hasQualMap = extractedQualifications.length >= 3
+
   return (
     <div className="flex flex-col h-full">
-      <CategoryList
-        categories={categories}
-        search={search}
-        setSearch={setSearch}
-        onSelect={handleSelectCategory}
-      />
+      {/* View toggle (only when JD is loaded and qualifications matched) */}
+      {hasQualMap && (
+        <div className="flex px-3 pt-2 gap-1">
+          <button
+            onClick={() => setKnowledgeView('map')}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+              knowledgeView === 'map'
+                ? 'bg-blue-500/20 text-blue-300'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            <Radar className="h-3 w-3" />
+            Qualification Map
+          </button>
+          <button
+            onClick={() => setKnowledgeView('browse')}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+              knowledgeView === 'browse'
+                ? 'bg-blue-500/20 text-blue-300'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            <List className="h-3 w-3" />
+            Browse All
+          </button>
+        </div>
+      )}
+
+      {/* Qualification Map view */}
+      {hasQualMap && knowledgeView === 'map' ? (
+        <QualificationMap onSelectCategory={handleSelectCategory} />
+      ) : (
+        <CategoryList
+          categories={categories}
+          search={search}
+          setSearch={setSearch}
+          onSelect={handleSelectCategory}
+        />
+      )}
     </div>
   )
 }

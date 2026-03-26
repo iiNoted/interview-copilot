@@ -17,8 +17,28 @@ export interface DetectedQuestion {
   isStreaming: boolean
 }
 
+export interface TextHighlight {
+  transcriptIndex: number
+  startOffset: number
+  endOffset: number
+  text: string
+}
+
+export interface SpawnedChat {
+  id: string
+  highlight: TextHighlight
+  selectedText: string
+  response: string
+  isStreaming: boolean
+  thinkingStep: string | null
+  categoryResponse: string | null
+  isCategoryStreaming: boolean
+  followUpChips: string[]
+  createdAt: number
+}
+
 interface OverlayState {
-  mode: 'minimized' | 'compact' | 'expanded'
+  mode: 'minimized' | 'expanded'
   isTranscribing: boolean
   currentModel: string
   messages: Message[]
@@ -30,19 +50,37 @@ interface OverlayState {
   jobText: string | null
   jobFilename: string | null
   showSettings: boolean
+  selectedAudioDeviceId: number
 
   // AI sidebar state
   aiBackend: 'openclaw' | 'anthropic'
   detectedQuestions: DetectedQuestion[]
   processedTranscriptIndices: Set<number>
 
-  setMode: (mode: OverlayState['mode']) => void
+  // Spawned chats (living document)
+  spawnedChats: SpawnedChat[]
+  preparednessScore: number
+
+  // Qualification map (spider chart)
+  extractedQualifications: Array<{
+    keyword: string
+    category: string
+    displayName: string
+    confidence: number
+    articleSlugs: string[]
+    resumeMatch: boolean
+    coverageScore: number
+  }>
+  knowledgeView: 'map' | 'browse'
+
+  setMode: (mode: 'minimized' | 'expanded') => void
   setModel: (model: string) => void
   setTranscribing: (val: boolean) => void
   toggleWebSearch: () => void
   toggleSourcethread: () => void
   setAiBackend: (backend: 'openclaw' | 'anthropic') => void
   setShowSettings: (show: boolean) => void
+  setSelectedAudioDeviceId: (id: number) => void
 
   addMessage: (msg: Message) => void
   updateMessage: (id: string, content: string) => void
@@ -60,6 +98,10 @@ interface OverlayState {
   setJob: (text: string, filename: string) => void
   clearJob: () => void
 
+  // Qualification map actions
+  setExtractedQualifications: (quals: OverlayState['extractedQualifications']) => void
+  setKnowledgeView: (view: 'map' | 'browse') => void
+
   // AI sidebar actions
   addDetectedQuestion: (q: DetectedQuestion) => void
   appendToQuestion: (id: string, text: string) => void
@@ -67,6 +109,18 @@ interface OverlayState {
   updateQuestionResponse: (id: string, content: string) => void
   clearDetectedQuestions: () => void
   markTranscriptProcessed: (index: number) => void
+
+  // Spawned chat actions (living document)
+  addSpawnedChat: (chat: SpawnedChat) => void
+  removeSpawnedChat: (id: string) => void
+  appendToSpawnedChat: (id: string, text: string) => void
+  finishSpawnedChatStreaming: (id: string) => void
+  setThinkingStep: (id: string, step: string | null) => void
+  appendToCategoryResponse: (id: string, text: string) => void
+  finishCategoryStreaming: (id: string) => void
+  startCategoryStreaming: (id: string) => void
+  setFollowUpChips: (id: string, chips: string[]) => void
+  clearSpawnedChats: () => void
 }
 
 export const useOverlayStore = create<OverlayState>((set) => ({
@@ -82,9 +136,14 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   jobText: null,
   jobFilename: null,
   showSettings: false,
+  selectedAudioDeviceId: 0,
   aiBackend: 'openclaw',
   detectedQuestions: [],
   processedTranscriptIndices: new Set(),
+  spawnedChats: [],
+  preparednessScore: 0,
+  extractedQualifications: [],
+  knowledgeView: 'browse',
 
   setMode: (mode) => set({ mode }),
   setModel: (model) => set({ currentModel: model }),
@@ -93,6 +152,7 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   toggleSourcethread: () => set((s) => ({ sourcethreadEnabled: !s.sourcethreadEnabled })),
   setAiBackend: (backend) => set({ aiBackend: backend }),
   setShowSettings: (show) => set({ showSettings: show }),
+  setSelectedAudioDeviceId: (id) => set({ selectedAudioDeviceId: id }),
 
   addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
   updateMessage: (id, content) =>
@@ -120,19 +180,41 @@ export const useOverlayStore = create<OverlayState>((set) => ({
       return { transcript: [...s.transcript, line] }
     }),
   updateTranscriptLine: (index, text) =>
-    set((s) => ({
-      transcript: s.transcript.map((l, i) => (i === index ? text : l))
-    })),
+    set((s) => {
+      const next = new Set(s.processedTranscriptIndices)
+      next.delete(index) // Allow re-analysis of edited lines
+      return {
+        transcript: s.transcript.map((l, i) => (i === index ? text : l)),
+        processedTranscriptIndices: next
+      }
+    }),
   deleteTranscriptLine: (index) =>
     set((s) => ({
-      transcript: s.transcript.filter((_, i) => i !== index)
+      transcript: s.transcript.filter((_, i) => i !== index),
+      spawnedChats: s.spawnedChats
+        .filter((c) => c.highlight.transcriptIndex !== index)
+        .map((c) => ({
+          ...c,
+          highlight: {
+            ...c.highlight,
+            transcriptIndex:
+              c.highlight.transcriptIndex > index
+                ? c.highlight.transcriptIndex - 1
+                : c.highlight.transcriptIndex
+          }
+        }))
     })),
-  clearTranscript: () => set({ transcript: [], processedTranscriptIndices: new Set() }),
+  clearTranscript: () =>
+    set({ transcript: [], processedTranscriptIndices: new Set(), spawnedChats: [], preparednessScore: 0 }),
 
   setResume: (text, filename) => set({ resumeText: text, resumeFilename: filename }),
   clearResume: () => set({ resumeText: null, resumeFilename: null }),
   setJob: (text, filename) => set({ jobText: text, jobFilename: filename }),
   clearJob: () => set({ jobText: null, jobFilename: null }),
+
+  // Qualification map
+  setExtractedQualifications: (quals) => set({ extractedQualifications: quals }),
+  setKnowledgeView: (view) => set({ knowledgeView: view }),
 
   // AI sidebar
   addDetectedQuestion: (q) =>
@@ -161,5 +243,62 @@ export const useOverlayStore = create<OverlayState>((set) => ({
       const next = new Set(s.processedTranscriptIndices)
       next.add(index)
       return { processedTranscriptIndices: next }
-    })
+    }),
+
+  // Spawned chat actions (living document)
+  addSpawnedChat: (chat) =>
+    set((s) => {
+      const chats = [chat, ...s.spawnedChats]
+      const score = Math.min(100, chats.length * 12 + s.detectedQuestions.filter((q) => q.response).length * 8)
+      return { spawnedChats: chats, preparednessScore: score }
+    }),
+  removeSpawnedChat: (id) =>
+    set((s) => {
+      const chats = s.spawnedChats.filter((c) => c.id !== id)
+      const score = Math.min(100, chats.length * 12 + s.detectedQuestions.filter((q) => q.response).length * 8)
+      return { spawnedChats: chats, preparednessScore: score }
+    }),
+  appendToSpawnedChat: (id, text) =>
+    set((s) => ({
+      spawnedChats: s.spawnedChats.map((c) =>
+        c.id === id ? { ...c, response: c.response + text, thinkingStep: null } : c
+      )
+    })),
+  finishSpawnedChatStreaming: (id) =>
+    set((s) => ({
+      spawnedChats: s.spawnedChats.map((c) =>
+        c.id === id ? { ...c, isStreaming: false } : c
+      )
+    })),
+  setThinkingStep: (id, step) =>
+    set((s) => ({
+      spawnedChats: s.spawnedChats.map((c) =>
+        c.id === id ? { ...c, thinkingStep: step } : c
+      )
+    })),
+  appendToCategoryResponse: (id, text) =>
+    set((s) => ({
+      spawnedChats: s.spawnedChats.map((c) =>
+        c.id === id ? { ...c, categoryResponse: (c.categoryResponse || '') + text } : c
+      )
+    })),
+  finishCategoryStreaming: (id) =>
+    set((s) => ({
+      spawnedChats: s.spawnedChats.map((c) =>
+        c.id === id ? { ...c, isCategoryStreaming: false } : c
+      )
+    })),
+  startCategoryStreaming: (id) =>
+    set((s) => ({
+      spawnedChats: s.spawnedChats.map((c) =>
+        c.id === id ? { ...c, isCategoryStreaming: true, categoryResponse: '' } : c
+      )
+    })),
+  setFollowUpChips: (id, chips) =>
+    set((s) => ({
+      spawnedChats: s.spawnedChats.map((c) =>
+        c.id === id ? { ...c, followUpChips: chips } : c
+      )
+    })),
+  clearSpawnedChats: () => set({ spawnedChats: [], preparednessScore: 0 })
 }))

@@ -1,11 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 const api = {
-  // Window control
-  setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => {
-    ipcRenderer.send('window:set-ignore-mouse', ignore, options)
-  },
-
   // AI
   queryAI: (params: { requestId: string; messages: Array<{ role: string; content: string }>; model: string }) => {
     return ipcRenderer.invoke('ai:query', params)
@@ -84,6 +79,21 @@ const api = {
   clearResume: (): Promise<void> => {
     return ipcRenderer.invoke('resume:clear')
   },
+  saveResumeText: (text: string): Promise<{ text: string; filename: string } | null> => {
+    return ipcRenderer.invoke('resume:save-text', text)
+  },
+  getResumeDataPack: (targetTitle: string, resumeText: string | null): Promise<{
+    matchedCategories: Array<{
+      key: string
+      displayName: string
+      role: string
+      skills: string[]
+      topics: string[]
+      experienceBullets: string[]
+    }>
+  }> => {
+    return ipcRenderer.invoke('resume:get-data-pack', targetTitle, resumeText)
+  },
 
   // Job Description
   uploadJobDescription: (): Promise<{ text: string; filename: string } | null> => {
@@ -95,6 +105,30 @@ const api = {
   clearJobDescription: (): Promise<void> => {
     return ipcRenderer.invoke('job:clear')
   },
+  saveJobText: (text: string): Promise<{ text: string; filename: string } | null> => {
+    return ipcRenderer.invoke('job:save-text', text)
+  },
+
+  // File parsing (for drag & drop)
+  parseDroppedFile: (filePath: string): Promise<{ text?: string; filename?: string; error?: string }> => {
+    return ipcRenderer.invoke('file:parse-dropped', filePath)
+  },
+
+  // Auth
+  getAuthUser: (): Promise<{ id: string; email: string; name: string; avatarUrl: string } | null> => {
+    return ipcRenderer.invoke('auth:get-user')
+  },
+  googleLogin: (): Promise<{ id: string; email: string; name: string; avatarUrl: string } | null> => {
+    return ipcRenderer.invoke('auth:google-login')
+  },
+  logout: (): Promise<void> => {
+    return ipcRenderer.invoke('auth:logout')
+  },
+
+  // System
+  getSystemLocale: (): Promise<string> => {
+    return ipcRenderer.invoke('system:get-locale')
+  },
 
   // Settings
   getSettings: (): Promise<{
@@ -105,6 +139,7 @@ const api = {
     remoteViewEnabled: boolean
     remoteViewPort: number
     remoteViewToken: string | null
+    locale: string | null
   }> => {
     return ipcRenderer.invoke('settings:get')
   },
@@ -154,8 +189,52 @@ const api = {
     return ipcRenderer.invoke('billing:open-portal')
   },
 
+  // Flat subscription ($0.99/month)
+  createFlatCheckoutSession: (email: string): Promise<string | null> => {
+    return ipcRenderer.invoke('billing:create-flat-checkout', email)
+  },
+  getFlatBillingState: (): Promise<{
+    isActive: boolean
+    email: string | null
+    customerId: string | null
+  }> => {
+    return ipcRenderer.invoke('billing:get-flat-state')
+  },
+  checkFlatBillingFresh: (email: string): Promise<boolean> => {
+    return ipcRenderer.invoke('billing:check-flat-fresh', email)
+  },
+  fetchCopilotApiKey: (email: string, customerId: string): Promise<string | null> => {
+    return ipcRenderer.invoke('billing:fetch-api-key', email, customerId)
+  },
+
+  // Job Search
+  searchJobs: (params: { query: string; remote?: boolean; country?: string }): Promise<Array<{
+    id: string
+    source: 'remoteok' | 'jsearch'
+    title: string
+    company: string
+    companyLogo?: string
+    location: string
+    remote: boolean
+    salaryMin?: number
+    salaryMax?: number
+    description: string
+    qualifications: string[]
+    tags: string[]
+    url: string
+    postedAt: string
+  }>> => {
+    return ipcRenderer.invoke('jobs:search', params)
+  },
+  getJobDetail: (id: string): Promise<{
+    id: string; title: string; company: string; description: string
+    qualifications: string[]; tags: string[]; url: string
+  } | null> => {
+    return ipcRenderer.invoke('jobs:get-detail', id)
+  },
+
   // Knowledge Base
-  getCategories: (resumeText?: string): Promise<Array<{
+  getCategories: (resumeText?: string, jobText?: string): Promise<Array<{
     key: string
     displayName: string
     role: string
@@ -165,13 +244,27 @@ const api = {
     totalResolutions: number
     hasFunctionCatalog: boolean
   }>> => {
-    return ipcRenderer.invoke('kb:get-categories', resumeText)
+    return ipcRenderer.invoke('kb:get-categories', resumeText, jobText)
   },
   getCategoryDetail: (categoryKey: string): Promise<any> => {
     return ipcRenderer.invoke('kb:get-category-detail', categoryKey)
   },
   getArticleContent: (categoryKey: string, filename: string): Promise<string | null> => {
     return ipcRenderer.invoke('kb:get-article', categoryKey, filename)
+  },
+  getQualificationsDb: (): Promise<Record<string, Array<{
+    id: string
+    keyword: string
+    display: string
+    topic: string
+    searchTitle: string
+    priorityScore: number
+    existingArticle: string | null
+  }>>> => {
+    return ipcRenderer.invoke('kb:get-qualifications')
+  },
+  getQualificationSnippet: (category: string, qualId: string): Promise<string | null> => {
+    return ipcRenderer.invoke('kb:get-qualification-snippet', category, qualId)
   },
 
   // Remote View
@@ -227,12 +320,41 @@ const api = {
     return ipcRenderer.invoke('onboarding:complete')
   },
 
-  // Minimize / restore
-  minimizeOverlay: () => {
-    ipcRenderer.send('overlay:minimize')
+  // Overlay window controls
+  minimizeOverlay: (): Promise<void> => {
+    return ipcRenderer.invoke('overlay:minimize')
   },
-  restoreOverlay: () => {
-    ipcRenderer.send('overlay:restore')
+  restoreOverlay: (): Promise<void> => {
+    return ipcRenderer.invoke('overlay:restore')
+  },
+
+  // Updates
+  checkForUpdates: (): Promise<{ status: string; version: string | null }> => {
+    return ipcRenderer.invoke('updater:check')
+  },
+  installUpdate: (): Promise<void> => {
+    return ipcRenderer.invoke('updater:install')
+  },
+  getUpdateStatus: (): Promise<{ status: string; version: string | null; error: string | null }> => {
+    return ipcRenderer.invoke('updater:get-status')
+  },
+  onUpdateStatus: (callback: (data: { status: string; version?: string; error?: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { status: string; version?: string; error?: string }) => callback(data)
+    ipcRenderer.on('updater:status', handler)
+    return () => ipcRenderer.removeListener('updater:status', handler)
+  },
+
+  // Terms acceptance
+  getTermsAccepted: (): Promise<boolean> => {
+    return ipcRenderer.invoke('terms:get-accepted')
+  },
+  acceptTerms: (): Promise<void> => {
+    return ipcRenderer.invoke('terms:accept')
+  },
+
+  // App info
+  getAppVersion: (): Promise<string> => {
+    return ipcRenderer.invoke('app:get-version')
   },
 
   // Events from main
