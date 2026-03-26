@@ -7,3 +7,4 @@ out/
 pipeline-data/
 models/
 build/embedded.provisionprofile
+.github/
