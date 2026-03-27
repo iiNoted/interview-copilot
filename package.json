@@ -1,6 +1,6 @@
 {
   "name": "interview-copilot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI-powered interview and meeting copilot with real-time transcription",
   "main": "./out/main/index.js",
   "author": "SourceThread",
@@ -37,6 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.3.3",
+    "electron-log": "^5.4.3",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.8.3",
     "lucide-react": "^1.0.1",

@@ -12,28 +12,29 @@
 </head>
 <body>
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: March 23, 2026</p>
+    <p class="updated">Last updated: March 26, 2026</p>
 
     <p><strong>Interview Copilot</strong> ("the App") is developed by SourceThread. This policy describes how we handle your data.</p>
 
     <h2>Data Collection</h2>
     <p>The App processes the following data <strong>locally on your device</strong>:</p>
     <ul>
-        <li><strong>Audio transcription:</strong> System audio is captured and transcribed in real-time using on-device speech recognition (whisper.cpp). Audio is never recorded, stored, or transmitted.</li>
+        <li><strong>Audio transcription:</strong> System audio is captured and transcribed in real-time using on-device speech recognition (whisper.cpp). Audio is never recorded, stored, or transmitted to any server.</li>
         <li><strong>Resume &amp; job descriptions:</strong> Documents you upload are stored locally on your device and used only to provide contextual AI responses.</li>
         <li><strong>Transcript history:</strong> Transcripts are saved locally and can be exported or deleted at any time.</li>
+        <li><strong>Settings &amp; preferences:</strong> Stored locally via electron-store in your OS application data directory.</li>
     </ul>
 
     <h2>AI Processing</h2>
     <p>When you ask the AI assistant a question, your query and relevant context (transcript excerpts, resume/job description text) are sent to:</p>
     <ul>
-        <li><strong>Anthropic API</strong> (Claude) — governed by <a href="https://www.anthropic.com/privacy">Anthropic's Privacy Policy</a></li>
+        <li><strong>Anthropic API</strong> (Claude) — governed by <a href="https://www.anthropic.com/privacy">Anthropic's Privacy Policy</a>. Data is transmitted over TLS-encrypted connections.</li>
         <li>Or <strong>OpenClaw</strong> (self-hosted) — data stays on your local network</li>
     </ul>
     <p>You choose which backend to use in Settings. No AI queries are made without your explicit action.</p>
 
     <h2>Billing</h2>
-    <p>If you use the paid tier, usage data (token counts, not content) is reported to Stripe for billing. Stripe handles payment processing under their own privacy policy.</p>
+    <p>If you use the paid tier, usage data (token counts, not content) is reported to Stripe for billing. Your email is used for account identification. Stripe handles payment processing under their own <a href="https://stripe.com/privacy">privacy policy</a>. We do not store credit card numbers.</p>
 
     <h2>Data We Do NOT Collect</h2>
     <ul>
@@ -41,16 +42,32 @@
         <li>We do not track your usage patterns or behavior</li>
         <li>We do not sell or share any data with third parties</li>
         <li>We do not store audio recordings</li>
+        <li>We do not have access to your transcripts, resumes, or interview content</li>
+        <li>We do not use cookies or tracking pixels</li>
     </ul>
 
     <h2>Remote View</h2>
-    <p>The optional Remote View feature streams your overlay state to your phone over your local network. This data is encrypted in transit and never leaves your network unless you explicitly configure an external URL.</p>
+    <p>The optional Remote View feature streams your overlay state to your phone over your local network. This data is authenticated via a cryptographically random token and never leaves your local network unless you explicitly expose the port externally. No data passes through our servers.</p>
+
+    <h2>Data Security</h2>
+    <p>We implement the following security measures:</p>
+    <ul>
+        <li><strong>Encryption in transit:</strong> All API communications use TLS/HTTPS</li>
+        <li><strong>Context isolation:</strong> Renderer processes are sandboxed with no direct Node.js access</li>
+        <li><strong>No node integration:</strong> Web content cannot execute system commands</li>
+        <li><strong>Content Security Policy:</strong> Restricts script execution to trusted sources</li>
+        <li><strong>IPC whitelisting:</strong> Only approved settings keys can be modified from the UI</li>
+        <li><strong>Rate limiting:</strong> Remote View authentication has brute-force protection</li>
+    </ul>
 
     <h2>Data Storage &amp; Deletion</h2>
-    <p>All data is stored locally in your macOS Application Support directory. Uninstalling the App removes all data. You can also delete individual transcripts, resumes, and job descriptions from within the App.</p>
+    <p>All data is stored locally in your operating system's application data directory. On macOS: ~/Library/Application Support/Interview Copilot. On Windows: %APPDATA%/Interview Copilot. Uninstalling the App removes all data. You can also delete individual transcripts, resumes, and job descriptions from within the App.</p>
+
+    <h2>International Users</h2>
+    <p>If you are located in the European Union, you have rights under GDPR including the right to access, rectify, and delete your personal data. Since all data is stored locally on your device, you have full control over your data at all times. AI queries sent to Anthropic are subject to their data processing practices.</p>
 
     <h2>Children's Privacy</h2>
-    <p>The App is not intended for use by children under 13.</p>
+    <p>The App is not intended for use by children under 13. We do not knowingly collect data from children.</p>
 
     <h2>Changes</h2>
     <p>We may update this policy. Changes will be posted at this URL with an updated date.</p>

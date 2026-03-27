@@ -53,7 +53,7 @@ function JobCard({
       onClick={onSelect}
       className={`w-full text-left p-4 rounded-lg border transition-colors ${
         isSelected
-          ? 'bg-purple-500/10 border-purple-500/30'
+          ? 'bg-brand/10 border-brand/30'
           : 'bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/10'
       }`}
     >
@@ -83,7 +83,7 @@ function JobCard({
               className="shrink-0 p-1 -m-1 hover:bg-white/10 rounded"
             >
               {isSaved ? (
-                <BookmarkCheck className="h-4 w-4 text-purple-400" />
+                <BookmarkCheck className="h-4 w-4 text-brand" />
               ) : (
                 <Bookmark className="h-4 w-4 text-white/20 hover:text-white/40" />
               )}
@@ -179,20 +179,20 @@ Be concise — max 150 words. Use plain language, not textbook definitions.`
   }, [text, jobTitle, company])
 
   return (
-    <div className="mt-2 bg-purple-500/5 border border-purple-500/20 rounded-lg p-3 relative">
+    <div className="mt-2 bg-brand/5 border border-brand/20 rounded-lg p-3 relative">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-          <span className="text-xs font-medium text-purple-300">AI Explain</span>
+          <Sparkles className="h-3.5 w-3.5 text-brand" />
+          <span className="text-xs font-medium text-brand-light">AI Explain</span>
         </div>
         <button onClick={onClose} className="p-0.5 rounded hover:bg-white/10">
           <X className="h-3.5 w-3.5 text-white/40" />
         </button>
       </div>
-      <p className="text-[10px] text-purple-400/60 mb-1.5 italic">"{text}"</p>
+      <p className="text-[10px] text-brand/60 mb-1.5 italic">"{text}"</p>
       <div className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap">
         {response || (isStreaming ? 'Thinking...' : '')}
-        {isStreaming && <span className="inline-block w-1.5 h-3 bg-purple-400/60 animate-pulse ml-0.5" />}
+        {isStreaming && <span className="inline-block w-1.5 h-3 bg-brand/60 animate-pulse ml-0.5" />}
       </div>
     </div>
   )
@@ -236,7 +236,7 @@ function JobDetail({
             title={isSaved ? t('jobs.unsave') : t('jobs.save')}
           >
             {isSaved ? (
-              <BookmarkCheck className="h-4 w-4 text-purple-400" />
+              <BookmarkCheck className="h-4 w-4 text-brand" />
             ) : (
               <Bookmark className="h-4 w-4 text-white/40" />
             )}
@@ -290,7 +290,7 @@ function JobDetail({
           <div>
             <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">
               {t('jobs.qualifications')}
-              <span className="ml-2 text-[10px] font-normal text-purple-400/50 normal-case tracking-normal">
+              <span className="ml-2 text-[10px] font-normal text-brand/50 normal-case tracking-normal">
                 Click any to explain with AI
               </span>
             </h3>
@@ -301,8 +301,8 @@ function JobDetail({
                   onClick={() => setExplainText(explainText === q ? null : q)}
                   className={`px-2 py-1 rounded-md text-xs border transition-colors cursor-pointer ${
                     explainText === q
-                      ? 'bg-purple-500/20 text-purple-200 border-purple-500/40'
-                      : 'bg-purple-500/10 text-purple-300 border-purple-500/20 hover:bg-purple-500/15 hover:border-purple-500/30'
+                      ? 'bg-brand/20 text-brand-light border-brand/40'
+                      : 'bg-brand/10 text-brand-light border-brand/20 hover:bg-brand/15 hover:border-brand/30'
                   }`}
                 >
                   <Sparkles className="h-3 w-3 inline mr-1 opacity-40" />
@@ -325,7 +325,7 @@ function JobDetail({
         <div>
           <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2">
             {t('jobs.description')}
-            <span className="ml-2 text-[10px] font-normal text-purple-400/50 normal-case tracking-normal">
+            <span className="ml-2 text-[10px] font-normal text-brand/50 normal-case tracking-normal">
               Highlight text to explain
             </span>
           </h3>
@@ -451,7 +451,7 @@ export function JobsTab(): React.JSX.Element {
             <button
               onClick={handleSearch}
               disabled={loading || !searchInput.trim()}
-              className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors shrink-0"
+              className="px-4 py-2 rounded-lg bg-brand hover:bg-brand disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors shrink-0"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('jobs.search')}
             </button>
@@ -462,14 +462,14 @@ export function JobsTab(): React.JSX.Element {
                 type="checkbox"
                 checked={remoteOnly}
                 onChange={(e) => setRemoteOnly(e.target.checked)}
-                className="rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/30"
+                className="rounded border-white/20 bg-white/5 text-brand focus:ring-brand/30"
               />
               <span className="text-xs text-white/50">{t('jobs.remote_only')}</span>
             </label>
             <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+              className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/70 focus:outline-none focus:ring-1 focus:ring-brand/50"
             >
               <option value="">{t('jobs.all_countries')}</option>
               {ALL_LOCALES.map((loc) => (
@@ -482,7 +482,7 @@ export function JobsTab(): React.JSX.Element {
               <span className="text-xs text-white/30">{t('jobs.results', { count: jobs.length })}</span>
             )}
             {savedJobs.length > 0 && (
-              <span className="text-xs text-purple-400/60">
+              <span className="text-xs text-brand/60">
                 {t('jobs.saved', { count: savedJobs.length })}
               </span>
             )}
@@ -508,7 +508,7 @@ export function JobsTab(): React.JSX.Element {
 
           {loading && (
             <div className="text-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-400/50 mx-auto mb-3" />
+              <Loader2 className="h-8 w-8 animate-spin text-brand/50 mx-auto mb-3" />
               <p className="text-sm text-white/30">{t('jobs.searching')}</p>
             </div>
           )}

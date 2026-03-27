@@ -42,6 +42,28 @@ export function OverlayContainer(): React.JSX.Element {
   } = useOverlayStore()
 
   const [leftTab, setLeftTab] = useState<'transcript' | 'knowledge'>('transcript')
+  const [updateBlocked, setUpdateBlocked] = useState(false)
+  const [updateBlockedVersion, setUpdateBlockedVersion] = useState<string | null>(null)
+  const [tosAccepted, setTosAccepted] = useState<boolean | null>(null) // null = loading
+  const [tosScrolledToBottom, setTosScrolledToBottom] = useState(false)
+
+  // Check for forced update + ToS on mount
+  useEffect(() => {
+    window.api.isUpdateBlocked?.().then((r) => {
+      if (r?.blocked) {
+        setUpdateBlocked(true)
+        setUpdateBlockedVersion(r.version)
+      }
+    })
+    window.api.getTermsAccepted().then((accepted) => {
+      setTosAccepted(accepted)
+    })
+    const cleanupUpdate = window.api.onUpdateRequired?.((data) => {
+      setUpdateBlocked(true)
+      setUpdateBlockedVersion(data.version)
+    })
+    return () => { cleanupUpdate?.() }
+  }, [])
 
   // Load persisted data on mount
   useEffect(() => {
@@ -119,6 +141,79 @@ export function OverlayContainer(): React.JSX.Element {
     clearJob()
   }
 
+  // Update blocker — blocks all UI until update is installed
+  if (updateBlocked) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black/95 z-50">
+        <div className="text-center max-w-sm px-6">
+          <div className="mb-6 mx-auto w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+            <svg className="w-8 h-8 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Required Update</h2>
+          <p className="text-white/60 text-sm">
+            {updateBlockedVersion ? `Version ${updateBlockedVersion} is being installed.` : 'A required update is being installed.'}
+          </p>
+          <p className="text-white/40 text-xs mt-4">The app will restart automatically.</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ToS gate — must accept terms before using the app
+  if (tosAccepted === false) {
+    return (
+      <div className="fixed inset-0 flex flex-col bg-black/95 z-50 overflow-hidden">
+        <div className="flex-1 overflow-auto px-6 py-8 max-w-2xl mx-auto w-full" onScroll={(e) => {
+          const el = e.currentTarget
+          if (el.scrollHeight - el.scrollTop - el.clientHeight < 50) {
+            setTosScrolledToBottom(true)
+          }
+        }}>
+          <h1 className="text-xl font-bold text-white mb-2">Terms of Service</h1>
+          <p className="text-white/40 text-xs mb-6">Please read and accept to continue</p>
+          <div className="text-white/70 text-sm leading-relaxed space-y-3">
+            <p>By using Interview Copilot, you agree to these Terms of Service operated by SourceThread ("Company").</p>
+            <p><strong className="text-white">Binding Arbitration:</strong> All disputes will be resolved through individual binding arbitration, not court litigation. You waive your right to participate in class actions.</p>
+            <p><strong className="text-white">Disclaimer:</strong> The Service is provided "AS IS" without warranties. We do not guarantee interview success or career outcomes.</p>
+            <p><strong className="text-white">Liability Cap:</strong> Our total liability is limited to the amount you paid in the preceding 12 months or $100, whichever is less.</p>
+            <p><strong className="text-white">Indemnification:</strong> You agree to indemnify and hold harmless the Company from claims arising from your use of the Service.</p>
+            <p><strong className="text-white">AI Content:</strong> AI-generated responses are suggestions only. You are responsible for verifying accuracy.</p>
+            <p><strong className="text-white">Termination:</strong> We may terminate access at any time for any reason.</p>
+            <p className="text-white/40 text-xs">Full terms at copilot.sourcethread.com/terms</p>
+          </div>
+        </div>
+        <div className="p-6 border-t border-white/10 text-center">
+          <button
+            disabled={!tosScrolledToBottom}
+            onClick={async () => {
+              await window.api.acceptTerms()
+              setTosAccepted(true)
+            }}
+            className={`px-8 py-3 rounded-lg font-semibold text-sm transition-all ${
+              tosScrolledToBottom
+                ? 'bg-primary text-white hover:bg-primary/90 cursor-pointer'
+                : 'bg-white/10 text-white/30 cursor-not-allowed'
+            }`}
+          >
+            {tosScrolledToBottom ? 'I Accept the Terms of Service' : 'Scroll to bottom to accept'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Still loading ToS status
+  if (tosAccepted === null) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black/95">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   if (mode === 'minimized') {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
@@ -136,7 +231,7 @@ export function OverlayContainer(): React.JSX.Element {
   const currentLabel = MODELS.find((m) => m.id === currentModel)?.label || currentModel
 
   return (
-    <div className="fixed inset-2 flex flex-col rounded-xl border border-white/10 bg-[hsl(220,20%,10%)]/90 backdrop-blur-xl shadow-2xl overflow-hidden relative">
+    <div className="fixed inset-2 flex flex-col rounded-xl border border-white/10 bg-[var(--color-bg-card)]/90 backdrop-blur-xl shadow-2xl overflow-hidden relative">
       {/* Settings overlay */}
       {showSettings && <SettingsPanel />}
 
@@ -269,14 +364,14 @@ export function OverlayContainer(): React.JSX.Element {
             {jobFilename ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1 bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5">
-                    <Briefcase className="h-3 w-3 text-purple-400" />
-                    <span className="text-[10px] text-purple-300 max-w-[60px] truncate">
+                  <div className="flex items-center gap-1 bg-brand/10 border border-brand/20 rounded px-1.5 py-0.5">
+                    <Briefcase className="h-3 w-3 text-brand" />
+                    <span className="text-[10px] text-brand-light max-w-[60px] truncate">
                       {jobFilename}
                     </span>
                     <button
                       onClick={handleClearJob}
-                      className="text-purple-400/50 hover:text-red-400 transition-colors ml-0.5"
+                      className="text-brand/50 hover:text-red-400 transition-colors ml-0.5"
                     >
                       <span className="text-[10px]">x</span>
                     </button>

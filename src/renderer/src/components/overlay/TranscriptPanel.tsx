@@ -37,7 +37,7 @@ function renderHighlightedText(
       parts.push(
         <span
           key={key}
-          className="bg-purple-500/30 text-purple-200 rounded-sm px-0.5 cursor-pointer hover:bg-purple-500/50 transition-colors"
+          className="bg-brand/30 text-brand-light rounded-sm px-0.5 cursor-pointer hover:bg-brand/50 transition-colors"
           onClick={(e) => {
             e.stopPropagation()
             if (chatId && onHighlightClick) onHighlightClick(chatId)

@@ -22,6 +22,25 @@
     --input: 217 33% 17%;
     --ring: 224 76% 48%;
     --radius: 0.75rem;
+
+    /* Product theme defaults — Final Round AI inspired (overridden by applyTheme()) */
+    --color-primary: hsl(217, 91%, 60%);
+    --color-primary-fg: hsl(0, 0%, 100%);
+    --color-accent: hsl(217, 80%, 70%);
+    --color-accent-fg: hsl(0, 0%, 100%);
+    --color-bg-base: hsl(220, 16%, 7%);
+    --color-bg-card: hsl(220, 14%, 11%);
+    --color-bg-hover: hsl(220, 14%, 15%);
+    --color-border: hsla(220, 20%, 50%, 0.08);
+    --color-text-primary: hsl(220, 15%, 95%);
+    --color-text-secondary: hsla(220, 15%, 90%, 0.6);
+    --color-text-muted: hsla(220, 15%, 90%, 0.3);
+    --radius-base: 8px;
+    --gate-accent: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(230, 80%, 65%));
+    --gate-bg: hsl(222, 20%, 6%);
+    /* Raw HSL values for Tailwind brand color (supports opacity modifiers) */
+    --brand: 217 91% 60%;
+    --brand-light: 217 80% 70%;
   }
 
   * {

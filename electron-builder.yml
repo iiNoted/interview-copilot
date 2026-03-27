@@ -20,6 +20,10 @@ extraResources:
       - "*/qualification_articles/*.md"
       - "*/skill/skill_scaffold.json"
       - "*/qualifications.json"
+  - from: "models/"
+    to: "models"
+    filter:
+      - "*.bin"
 win:
   executableName: interview-copilot
 nsis:
@@ -43,7 +47,8 @@ mac:
     NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-    LSUIElement: false
+    ITSAppUsesNonExemptEncryption: false
+    LSUIElement: true
   notarize: true
 mas:
   entitlements: build/entitlements.mas.plist

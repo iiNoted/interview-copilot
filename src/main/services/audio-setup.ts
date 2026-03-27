@@ -11,7 +11,17 @@ export interface AudioSetupStatus {
   instructions: string | null
 }
 
-const SWITCH_AUDIO = '/opt/homebrew/bin/SwitchAudioSource'
+const SWITCH_PATHS = ['/opt/homebrew/bin/SwitchAudioSource', '/usr/local/bin/SwitchAudioSource']
+const FFMPEG_PATHS = ['/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg']
+
+function findBin(paths: string[]): string | null {
+  return paths.find((p) => existsSync(p)) || null
+}
+
+const EXEC_ENV = {
+  ...process.env,
+  PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`
+}
 
 let mirrorProc: ChildProcess | null = null
 let originalOutput: string | null = null
@@ -52,15 +62,18 @@ export function recoverAudioFromCrash(): void {
   const persisted = loadPersistedOriginalOutput()
   if (!persisted) return
 
+  const switchBin = findBin(SWITCH_PATHS)
+  if (!switchBin) return
+
   // Check if currently on BlackHole
   try {
-    const current = execSync(`${SWITCH_AUDIO} -c -t output 2>/dev/null`, {
-      encoding: 'utf-8'
+    const current = execSync(`"${switchBin}" -c -t output`, {
+      encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
     }).trim()
     if (current.toLowerCase().includes('blackhole')) {
       console.log(`[audio-setup] Crash recovery: restoring audio from BlackHole to "${persisted}"`)
-      execSync(`${SWITCH_AUDIO} -s "${persisted}" -t output 2>/dev/null`, {
-        encoding: 'utf-8'
+      execSync(`"${switchBin}" -s "${persisted}" -t output`, {
+        encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
       })
     }
   } catch { /* ignore */ }
@@ -98,67 +111,81 @@ export function checkAudioSetup(): AudioSetupStatus {
     }
   }
 
-  // macOS
-  try {
-    const hasSwitchAudio = existsSync(SWITCH_AUDIO)
-    const hasFFmpeg = existsSync('/opt/homebrew/bin/ffmpeg')
+  // macOS — check for SwitchAudioSource, BlackHole, and ffmpeg
+  const switchBin = findBin(SWITCH_PATHS)
+  const ffmpegBin = findBin(FFMPEG_PATHS)
 
-    if (!hasSwitchAudio) {
-      return {
-        platform,
-        ready: false,
-        currentOutput: 'Unknown',
-        hasLoopback: false,
-        instructions: 'Run: brew install switchaudio-osx'
-      }
-    }
+  // Build missing list for clear instructions
+  const missing: string[] = []
+  if (!switchBin) missing.push('switchaudio-osx')
+  if (!ffmpegBin) missing.push('ffmpeg')
 
-    const devices = execSync(`${SWITCH_AUDIO} -a -t output 2>/dev/null`, {
-      encoding: 'utf-8'
-    }).trim()
-
-    const currentOutput = execSync(`${SWITCH_AUDIO} -c -t output 2>/dev/null`, {
-      encoding: 'utf-8'
-    }).trim()
-
-    const hasBlackHole = devices.split('\n').some((d) => d.toLowerCase().includes('blackhole'))
-
-    if (!hasBlackHole) {
-      return {
-        platform,
-        ready: false,
-        currentOutput,
-        hasLoopback: false,
-        instructions: 'Run: brew install blackhole-2ch && sudo reboot'
-      }
-    }
-
-    if (!hasFFmpeg) {
-      return {
-        platform,
-        ready: false,
-        currentOutput,
-        hasLoopback: true,
-        instructions: 'Run: brew install ffmpeg'
-      }
-    }
-
-    // BlackHole + ffmpeg + SwitchAudioSource all present
-    return {
-      platform,
-      ready: true,
-      currentOutput,
-      hasLoopback: true,
-      instructions: null
-    }
-  } catch {
+  if (!switchBin) {
     return {
       platform,
       ready: false,
       currentOutput: 'Unknown',
       hasLoopback: false,
-      instructions: 'Run: brew install switchaudio-osx blackhole-2ch ffmpeg'
+      instructions: `Run: brew install ${missing.join(' ')}`
     }
+  }
+
+  let devices = ''
+  let currentOutput = 'Unknown'
+  try {
+    devices = execSync(`"${switchBin}" -a -t output`, {
+      encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
+    }).trim()
+  } catch (err) {
+    console.error('[audio-setup] SwitchAudioSource -a failed:', err)
+    return {
+      platform,
+      ready: false,
+      currentOutput: 'Unknown',
+      hasLoopback: false,
+      instructions: 'SwitchAudioSource found but failed to list devices. Try: brew reinstall switchaudio-osx'
+    }
+  }
+
+  try {
+    currentOutput = execSync(`"${switchBin}" -c -t output`, {
+      encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
+    }).trim()
+  } catch { /* use default 'Unknown' */ }
+
+  const hasBlackHole = devices.split('\n').some((d) => d.toLowerCase().includes('blackhole'))
+
+  if (!hasBlackHole) {
+    missing.push('blackhole-2ch')
+  }
+
+  if (missing.length > 0) {
+    return {
+      platform,
+      ready: false,
+      currentOutput,
+      hasLoopback: hasBlackHole,
+      instructions: `Run: brew install ${missing.join(' ')}${missing.includes('blackhole-2ch') ? ' && sudo reboot' : ''}`
+    }
+  }
+
+  if (!ffmpegBin) {
+    return {
+      platform,
+      ready: false,
+      currentOutput,
+      hasLoopback: true,
+      instructions: 'Run: brew install ffmpeg'
+    }
+  }
+
+  // All dependencies present
+  return {
+    platform,
+    ready: true,
+    currentOutput,
+    hasLoopback: true,
+    instructions: null
   }
 }
 
@@ -172,10 +199,16 @@ export function enableSystemAudioCapture(): { success: boolean; error?: string }
     return { success: true }
   }
 
+  const switchBin = findBin(SWITCH_PATHS)
+  const ffmpegBin = findBin(FFMPEG_PATHS)
+
+  if (!switchBin) return { success: false, error: 'SwitchAudioSource not found. Run: brew install switchaudio-osx' }
+  if (!ffmpegBin) return { success: false, error: 'ffmpeg not found. Run: brew install ffmpeg' }
+
   try {
     // Save current output
-    originalOutput = execSync(`${SWITCH_AUDIO} -c -t output 2>/dev/null`, {
-      encoding: 'utf-8'
+    originalOutput = execSync(`"${switchBin}" -c -t output`, {
+      encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
     }).trim()
 
     // If already on BlackHole, we're good
@@ -187,10 +220,9 @@ export function enableSystemAudioCapture(): { success: boolean; error?: string }
     persistOriginalOutput(originalOutput)
 
     // Find the speaker device index for ffmpeg
-    // Get avfoundation device list
     const avDevices = execSync(
-      'ffmpeg -f avfoundation -list_devices true -i "" 2>&1 || true',
-      { encoding: 'utf-8' }
+      `"${ffmpegBin}" -f avfoundation -list_devices true -i "" 2>&1 || true`,
+      { encoding: 'utf-8', timeout: 10000, env: EXEC_ENV }
     )
 
     // Find Mac mini Speakers index in output devices
@@ -218,15 +250,14 @@ export function enableSystemAudioCapture(): { success: boolean; error?: string }
     }
 
     // Switch to BlackHole
-    execSync(`${SWITCH_AUDIO} -s "BlackHole 2ch" -t output 2>/dev/null`, {
-      encoding: 'utf-8'
+    execSync(`"${switchBin}" -s "BlackHole 2ch" -t output`, {
+      encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
     })
 
     // Start ffmpeg mirror: BlackHole input → Speakers
-    // This lets the user hear audio while we capture it
     if (speakerIndex >= 0) {
       mirrorProc = spawn(
-        '/opt/homebrew/bin/ffmpeg',
+        ffmpegBin,
         [
           '-f', 'avfoundation',
           '-i', ':BlackHole 2ch',
@@ -234,25 +265,16 @@ export function enableSystemAudioCapture(): { success: boolean; error?: string }
           '-audio_device_index', String(speakerIndex),
           '-'
         ],
-        {
-          stdio: ['ignore', 'ignore', 'ignore'],
-          env: {
-            ...process.env,
-            PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`
-          }
-        }
+        { stdio: ['ignore', 'ignore', 'ignore'], env: EXEC_ENV }
       )
 
-      mirrorProc.on('error', () => {
-        mirrorProc = null
-      })
-      mirrorProc.on('close', () => {
-        mirrorProc = null
-      })
+      mirrorProc.on('error', () => { mirrorProc = null })
+      mirrorProc.on('close', () => { mirrorProc = null })
     }
 
     return { success: true }
   } catch (err: any) {
+    console.error('[audio-setup] enableSystemAudioCapture failed:', err)
     return { success: false, error: err.message || 'Failed to enable capture' }
   }
 }
@@ -269,19 +291,21 @@ export function disableSystemAudioCapture(): void {
     mirrorProc = null
   }
 
+  const switchBin = findBin(SWITCH_PATHS)
+
   // Try in-memory value first, then fall back to persisted file
   const deviceToRestore = originalOutput || loadPersistedOriginalOutput()
 
-  if (deviceToRestore && !deviceToRestore.toLowerCase().includes('blackhole')) {
+  if (switchBin && deviceToRestore && !deviceToRestore.toLowerCase().includes('blackhole')) {
     try {
-      execSync(`${SWITCH_AUDIO} -s "${deviceToRestore}" -t output 2>/dev/null`, {
-        encoding: 'utf-8'
+      execSync(`"${switchBin}" -s "${deviceToRestore}" -t output`, {
+        encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
       })
     } catch {
       // Fallback to Mac mini Speakers
       try {
-        execSync(`${SWITCH_AUDIO} -s "Mac mini Speakers" -t output 2>/dev/null`, {
-          encoding: 'utf-8'
+        execSync(`"${switchBin}" -s "Mac mini Speakers" -t output`, {
+          encoding: 'utf-8', timeout: 5000, env: EXEC_ENV
         })
       } catch {
         /* ignore */

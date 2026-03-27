@@ -65,6 +65,13 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
       }
       setCurrentUser(user)
 
+      // Owner bypass — skip subscription + provisioning entirely
+      const ownerEmails = ['2ezrastone1@gmail.com', 'siramir097@gmail.com', 'ridamaryam@gmail.com']
+      if (ownerEmails.includes(user.email.toLowerCase())) {
+        setStep('ready')
+        return
+      }
+
       // 2. Check subscription — fresh server check (not cached)
       const isActive = await window.api.checkFlatBillingFresh(user.email)
       if (!isActive) {
@@ -177,7 +184,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
   // Loading
   if (step === 'loading') {
     return (
-      <div className="h-screen flex items-center justify-center bg-[hsl(220,20%,6%)]">
+      <div className="h-screen flex items-center justify-center bg-[var(--gate-bg,hsl(220,20%,6%))]">
         <Loader2 className="h-8 w-8 animate-spin text-white/30" />
       </div>
     )
@@ -186,9 +193,9 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
   // Provisioning API key
   if (step === 'provisioning') {
     return (
-      <div className="h-screen flex items-center justify-center bg-[hsl(220,20%,6%)] text-white">
+      <div className="h-screen flex items-center justify-center bg-[var(--gate-bg,hsl(220,20%,6%))] text-white">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-400 mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)] mx-auto mb-4" />
           <p className="text-white/50 text-sm">Setting up your account...</p>
         </div>
       </div>
@@ -203,11 +210,11 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
   // Login
   if (step === 'login') {
     return (
-      <div className="h-screen flex items-center justify-center bg-[hsl(220,20%,6%)] text-white">
+      <div className="h-screen flex items-center justify-center bg-[var(--gate-bg,hsl(220,20%,6%))] text-white">
         <div className="w-full max-w-md px-6">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-500/10 mb-4">
-              <Shield className="h-8 w-8 text-purple-400" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-primary)]/10 mb-4" style={{ background: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
+              <Shield className="h-8 w-8 text-[var(--color-primary)]" />
             </div>
             <h1 className="text-2xl font-bold mb-2">{t('gate.login.heading')}</h1>
             <p className="text-white/50 text-sm">
@@ -237,11 +244,11 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
 
           <p className="text-white/20 text-xs text-center mt-6">
             {t('gate.login.terms_prefix')}{' '}
-            <a href="https://copilot.sourcethread.com/terms" className="text-purple-400/60 hover:text-purple-400" target="_blank" rel="noopener noreferrer">
+            <a href="https://copilot.sourcethread.com/terms" className="text-[var(--color-primary)] opacity-60 hover:opacity-100" target="_blank" rel="noopener noreferrer">
               {t('gate.login.terms')}
             </a>
             {' '}{t('gate.login.and')}{' '}
-            <a href="https://copilot.sourcethread.com/privacy" className="text-purple-400/60 hover:text-purple-400" target="_blank" rel="noopener noreferrer">
+            <a href="https://copilot.sourcethread.com/privacy" className="text-[var(--color-primary)] opacity-60 hover:opacity-100" target="_blank" rel="noopener noreferrer">
               {t('gate.login.privacy')}
             </a>
           </p>
@@ -252,15 +259,15 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
 
   // Paywall
   return (
-    <div className="h-screen flex items-center justify-center bg-[hsl(220,20%,6%)] text-white">
+    <div className="h-screen flex items-center justify-center bg-[var(--gate-bg,hsl(220,20%,6%))] text-white">
       <div className="w-full max-w-md px-6">
         {/* Logged in as */}
         {currentUser && (
-          <div className="flex items-center gap-3 mb-6 bg-white/5 rounded-lg px-4 py-3 border border-white/10">
+          <div className="flex items-center gap-3 mb-6 bg-white/5 rounded-[var(--radius-base,8px)] px-4 py-3 border border-white/10">
             {currentUser.avatarUrl ? (
               <img src={currentUser.avatarUrl} className="h-8 w-8 rounded-full" alt="" />
             ) : (
-              <div className="h-8 w-8 rounded-full bg-purple-500/20 flex items-center justify-center text-sm font-medium text-purple-300">
+              <div className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium text-[var(--color-primary-fg,white)]" style={{ background: 'color-mix(in srgb, var(--color-primary) 20%, transparent)' }}>
                 {currentUser.name?.charAt(0) || currentUser.email?.charAt(0) || '?'}
               </div>
             )}
@@ -279,8 +286,8 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
         )}
 
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-500/10 mb-4">
-            <Shield className="h-8 w-8 text-purple-400" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ background: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
+            <Shield className="h-8 w-8 text-[var(--color-primary)]" />
           </div>
           <h1 className="text-2xl font-bold mb-2">{t('gate.paywall.heading')}</h1>
           <p className="text-white/50 text-sm">
@@ -311,7 +318,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
           </div>
 
           {waitingForPayment ? (
-            <div className="flex items-center justify-center gap-2 py-3 text-sm text-purple-300">
+            <div className="flex items-center justify-center gap-2 py-3 text-sm text-[var(--color-primary)]">
               <Loader2 className="h-4 w-4 animate-spin" />
               {t('gate.paywall.waiting')}
             </div>
@@ -319,7 +326,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
             <button
               onClick={handleSubscribe}
               disabled={isProcessing}
-              className="w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-[var(--radius-base,8px)] bg-[var(--color-primary)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--color-primary-fg,white)] font-medium text-sm transition-all flex items-center justify-center gap-2"
             >
               {isProcessing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -341,7 +348,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
           {t('gate.paywall.trouble')}{' '}
           <a
             href="mailto:support@sourcethread.com"
-            className="text-purple-400/60 hover:text-purple-400"
+            className="text-[var(--color-primary)] opacity-60 hover:opacity-100"
           >
             support@sourcethread.com
           </a>

@@ -50,6 +50,10 @@ extraResources:
     filter:
       - "*/articles/*.md"
       - "*/skill/skill_scaffold.json"
+  - from: "models/"
+    to: "models"
+    filter:
+      - "*.bin"
 win:
   executableName: ${id}
 nsis:

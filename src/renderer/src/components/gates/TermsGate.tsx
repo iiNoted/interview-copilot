@@ -30,11 +30,11 @@ export function TermsGate({ children }: TermsGateProps): React.JSX.Element {
   if (accepted) return <>{children}</>
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0e14]">
-      <div className="w-full max-w-lg mx-4 flex flex-col rounded-xl border border-white/10 bg-[hsl(220,20%,10%)] shadow-2xl overflow-hidden" style={{ maxHeight: '80vh' }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--gate-bg,#0a0e14)]">
+      <div className="w-full max-w-lg mx-4 flex flex-col rounded-[var(--radius-base,12px)] border border-white/10 bg-[var(--color-bg-card,hsl(220,20%,10%))] shadow-2xl overflow-hidden" style={{ maxHeight: '80vh' }}>
         <div className="px-6 py-4 border-b border-white/5">
           <h1 className="text-lg font-semibold text-white">Terms of Service & Privacy Policy</h1>
-          <p className="text-xs text-white/40 mt-1">Interview Copilot v{TERMS_VERSION} by SourceThread</p>
+          <p className="text-xs text-white/40 mt-1">v{TERMS_VERSION} by SourceThread</p>
         </div>
 
         <div
@@ -114,9 +114,9 @@ export function TermsGate({ children }: TermsGateProps): React.JSX.Element {
           <button
             disabled={!scrolledToBottom}
             onClick={handleAccept}
-            className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-6 py-2 rounded-[var(--radius-base,8px)] text-sm font-medium transition-all ${
               scrolledToBottom
-                ? 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer'
+                ? 'bg-[var(--color-primary,hsl(217,91%,60%))] text-[var(--color-primary-fg,white)] hover:brightness-110 cursor-pointer'
                 : 'bg-white/5 text-white/20 cursor-not-allowed'
             }`}
           >

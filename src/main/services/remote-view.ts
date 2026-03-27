@@ -104,7 +104,11 @@ export function startRemoteViewServer(port: number, token: string): { url: strin
     }
 
     const url = new URL(request.url || '', `http://${request.headers.host}`)
-    const clientToken = url.searchParams.get('token')
+    // Accept token from: subprotocol header (preferred), Authorization header, or URL param (legacy)
+    const protocols = request.headers['sec-websocket-protocol']?.split(',').map(s => s.trim()) || []
+    const clientToken = protocols.find(p => p.startsWith('token-'))?.slice(6)
+      || request.headers.authorization?.replace('Bearer ', '')
+      || url.searchParams.get('token')
 
     if (clientToken !== authToken) {
       // Track failed attempt with exponential backoff
@@ -237,7 +241,7 @@ var ws,rt,rd=1000;
 function conn(){
   if(!T)return;
   var p=location.protocol==='https:'?'wss:':'ws:';
-  ws=new WebSocket(p+'//'+location.host+'/?token='+T);
+  ws=new WebSocket(p+'//'+location.host+'/','token-'+T);
   ws.onopen=function(){
     document.getElementById('sd').className='dot on';
     document.getElementById('st').textContent='Connected';

@@ -106,7 +106,7 @@ export function CopilotTab(): React.JSX.Element {
   const currentLabel = MODELS.find((m) => m.id === currentModel)?.label || currentModel
 
   return (
-    <div className="h-full flex flex-col rounded-lg border border-white/5 bg-[hsl(220,20%,8%)] overflow-hidden relative">
+    <div className="h-full flex flex-col rounded-lg border border-white/5 bg-[var(--color-bg-base)] overflow-hidden relative">
       {/* Settings overlay */}
       {showSettings && <SettingsPanel />}
 
@@ -220,14 +220,14 @@ export function CopilotTab(): React.JSX.Element {
             {jobFilename ? (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1 bg-purple-500/10 border border-purple-500/20 rounded px-1.5 py-0.5">
-                    <Briefcase className="h-3 w-3 text-purple-400" />
-                    <span className="text-[10px] text-purple-300 max-w-[60px] truncate">
+                  <div className="flex items-center gap-1 bg-brand/10 border border-brand/20 rounded px-1.5 py-0.5">
+                    <Briefcase className="h-3 w-3 text-brand" />
+                    <span className="text-[10px] text-brand-light max-w-[60px] truncate">
                       {jobFilename}
                     </span>
                     <button
                       onClick={handleClearJob}
-                      className="text-purple-400/50 hover:text-red-400 transition-colors ml-0.5"
+                      className="text-brand/50 hover:text-red-400 transition-colors ml-0.5"
                     >
                       <span className="text-[10px]">x</span>
                     </button>

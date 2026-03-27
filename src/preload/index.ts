@@ -169,6 +169,11 @@ const api = {
     return ipcRenderer.invoke('usage:get-history')
   },
 
+  // Product identity
+  getProductName: (): Promise<string> => {
+    return ipcRenderer.invoke('app:get-product-name')
+  },
+
   // Billing
   getBillingState: (): Promise<{
     isActive: boolean
@@ -303,6 +308,17 @@ const api = {
     return ipcRenderer.invoke('transcript:export', id)
   },
 
+  // Flashcard progress
+  getFlashcardProgress: (): Promise<Record<string, { cardId: string; rating: 'knew' | 'partial' | 'didnt_know'; reviewedAt: number; reviewCount: number }>> => {
+    return ipcRenderer.invoke('flashcards:get-progress')
+  },
+  rateFlashcard: (cardId: string, rating: string): Promise<{ cardId: string; rating: string; reviewedAt: number; reviewCount: number }> => {
+    return ipcRenderer.invoke('flashcards:rate', cardId, rating)
+  },
+  resetFlashcardProgress: (): Promise<void> => {
+    return ipcRenderer.invoke('flashcards:reset-progress')
+  },
+
   // Onboarding
   getOnboardingStatus: (): Promise<{
     audioReady: boolean
@@ -342,6 +358,14 @@ const api = {
     const handler = (_event: Electron.IpcRendererEvent, data: { status: string; version?: string; error?: string }) => callback(data)
     ipcRenderer.on('updater:status', handler)
     return () => ipcRenderer.removeListener('updater:status', handler)
+  },
+  isUpdateBlocked: (): Promise<{ blocked: boolean; version: string | null }> => {
+    return ipcRenderer.invoke('updater:is-blocked')
+  },
+  onUpdateRequired: (callback: (data: { version: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { version: string }) => callback(data)
+    ipcRenderer.on('updater:update-required', handler)
+    return () => ipcRenderer.removeListener('updater:update-required', handler)
   },
 
   // Terms acceptance

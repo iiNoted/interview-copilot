@@ -274,7 +274,7 @@ Generate the resume now.`
           {savedJobs.length > 0 && (
             <button
               onClick={importFromSavedJobs}
-              className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 mb-4 transition-colors"
+              className="flex items-center gap-1.5 text-xs text-brand hover:text-brand-light mb-4 transition-colors"
             >
               <Briefcase className="h-3.5 w-3.5" />
               {t('resume.import_jobs', { count: savedJobs.length })}

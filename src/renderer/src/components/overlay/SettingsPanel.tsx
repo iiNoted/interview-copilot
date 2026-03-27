@@ -275,7 +275,7 @@ export function SettingsPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="fixed inset-2 z-50 flex flex-col rounded-xl border border-white/10 bg-[hsl(220,20%,10%)]/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-2 z-50 flex flex-col rounded-xl border border-white/10 bg-[var(--color-bg-card)]/95 backdrop-blur-xl shadow-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <span className="text-sm font-semibold text-white/80">{t('settings.title')}</span>
@@ -298,7 +298,7 @@ export function SettingsPanel(): React.JSX.Element {
               {authUser.avatarUrl ? (
                 <img src={authUser.avatarUrl} className="h-8 w-8 rounded-full" alt="" />
               ) : (
-                <div className="h-8 w-8 rounded-full bg-purple-500/20 flex items-center justify-center text-sm font-medium text-purple-300">
+                <div className="h-8 w-8 rounded-full bg-brand/20 flex items-center justify-center text-sm font-medium text-brand-light">
                   {authUser.name?.charAt(0) || '?'}
                 </div>
               )}
@@ -550,9 +550,9 @@ export function SettingsPanel(): React.JSX.Element {
             {t('settings.job_desc')}
           </h3>
           {jobFilename ? (
-            <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
-              <Briefcase className="h-4 w-4 text-purple-400" />
-              <span className="flex-1 text-xs text-purple-300 truncate">{jobFilename}</span>
+            <div className="flex items-center gap-2 bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
+              <Briefcase className="h-4 w-4 text-brand" />
+              <span className="flex-1 text-xs text-brand-light truncate">{jobFilename}</span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -568,13 +568,13 @@ export function SettingsPanel(): React.JSX.Element {
                 value={jobTextInput}
                 onChange={(e) => setJobTextInput(e.target.value)}
                 placeholder={t('settings.job_paste')}
-                className="w-full h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none"
+                className="w-full h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-brand/50 resize-none"
               />
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 gap-1.5 text-xs border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                  className="flex-1 gap-1.5 text-xs border-brand/30 text-brand-light hover:bg-brand/10"
                   onClick={handleSaveJobText}
                   disabled={!jobTextInput.trim()}
                 >
@@ -599,7 +599,7 @@ export function SettingsPanel(): React.JSX.Element {
                 onClick={handleUploadJob}
                 className={`flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-3 py-4 cursor-pointer transition-colors ${
                   jobDragOver
-                    ? 'border-purple-400/60 bg-purple-500/10'
+                    ? 'border-brand/60 bg-brand/10'
                     : 'border-white/10 hover:border-white/20 hover:bg-white/5'
                 }`}
               >

@@ -9,9 +9,9 @@ import remarkGfm from 'remark-gfm'
 function ThinkingDots(): React.JSX.Element {
   return (
     <span className="inline-flex gap-0.5">
-      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-      <span className="w-1 h-1 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <span className="w-1 h-1 rounded-full bg-brand animate-bounce" style={{ animationDelay: '0ms' }} />
+      <span className="w-1 h-1 rounded-full bg-brand animate-bounce" style={{ animationDelay: '150ms' }} />
+      <span className="w-1 h-1 rounded-full bg-brand animate-bounce" style={{ animationDelay: '300ms' }} />
     </span>
   )
 }
@@ -33,7 +33,7 @@ function SpawnedChatCard({
   return (
     <div
       id={`spawned-chat-${chat.id}`}
-      className="border border-purple-500/20 rounded-lg overflow-hidden bg-purple-500/[0.03] animate-in slide-in-from-top-2 fade-in duration-300"
+      className="border border-brand/20 rounded-lg overflow-hidden bg-brand/[0.03] animate-in slide-in-from-top-2 fade-in duration-300"
     >
       {/* Header */}
       <div className="flex items-center gap-1.5 px-3 py-2">
@@ -42,11 +42,11 @@ function SpawnedChatCard({
           className="flex-1 flex items-start gap-1.5 text-left min-w-0"
         >
           {collapsed ? (
-            <ChevronRight className="h-3 w-3 mt-0.5 shrink-0 text-purple-400" />
+            <ChevronRight className="h-3 w-3 mt-0.5 shrink-0 text-brand" />
           ) : (
-            <ChevronDown className="h-3 w-3 mt-0.5 shrink-0 text-purple-400" />
+            <ChevronDown className="h-3 w-3 mt-0.5 shrink-0 text-brand" />
           )}
-          <span className="text-xs font-medium text-purple-300 leading-snug truncate">
+          <span className="text-xs font-medium text-brand-light leading-snug truncate">
             &ldquo;{chat.selectedText}&rdquo;
           </span>
         </button>
@@ -54,7 +54,7 @@ function SpawnedChatCard({
         {/* Up-arrow: broader category */}
         <button
           onClick={() => onEscalate(chat.id)}
-          className="shrink-0 p-1 text-purple-400/40 hover:text-purple-300 transition-colors"
+          className="shrink-0 p-1 text-brand/40 hover:text-brand-light transition-colors"
           title={t('spawned.escalate')}
           disabled={chat.isCategoryStreaming}
         >
@@ -73,10 +73,10 @@ function SpawnedChatCard({
 
       {/* Response */}
       {!collapsed && (
-        <div className="px-3 pb-3 border-t border-purple-500/10">
+        <div className="px-3 pb-3 border-t border-brand/10">
           {/* Thinking trace */}
           {chat.thinkingStep && !chat.response ? (
-            <div className="flex items-center gap-2 py-3 text-xs text-purple-300/60">
+            <div className="flex items-center gap-2 py-3 text-xs text-brand-light/60">
               <ThinkingDots />
               <span>{chat.thinkingStep}</span>
             </div>
@@ -86,30 +86,30 @@ function SpawnedChatCard({
               {t('spawned.researching')}
             </div>
           ) : (
-            <div className="prose prose-invert prose-xs max-w-none pt-2 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_h2]:text-xs [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-purple-300 [&_code]:text-purple-300 [&_code]:bg-white/5 [&_code]:px-1 [&_code]:rounded [&_strong]:text-purple-200 text-xs leading-relaxed">
+            <div className="prose prose-invert prose-xs max-w-none pt-2 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0 [&_h2]:text-xs [&_h2]:font-semibold [&_h2]:mt-2 [&_h2]:mb-1 [&_h2]:text-brand-light [&_code]:text-brand-light [&_code]:bg-white/5 [&_code]:px-1 [&_code]:rounded [&_strong]:text-brand-light text-xs leading-relaxed">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{chat.response}</ReactMarkdown>
               {chat.isStreaming && (
-                <span className="inline-block w-1.5 h-3 bg-purple-400 animate-pulse rounded-sm ml-0.5" />
+                <span className="inline-block w-1.5 h-3 bg-brand animate-pulse rounded-sm ml-0.5" />
               )}
             </div>
           )}
 
           {/* Category escalation */}
           {(chat.categoryResponse || chat.isCategoryStreaming) && (
-            <div className="mt-2 pt-2 border-t border-purple-500/10">
-              <div className="text-[10px] text-purple-400/50 mb-1 uppercase tracking-wide font-medium">
+            <div className="mt-2 pt-2 border-t border-brand/10">
+              <div className="text-[10px] text-brand/50 mb-1 uppercase tracking-wide font-medium">
                 {t('spawned.broader')}
               </div>
               {chat.isCategoryStreaming && !chat.categoryResponse ? (
-                <div className="flex items-center gap-2 py-1 text-xs text-purple-300/40">
+                <div className="flex items-center gap-2 py-1 text-xs text-brand-light/40">
                   <ThinkingDots />
                   <span>{t('spawned.finding_broader')}</span>
                 </div>
               ) : (
-                <div className="prose prose-invert prose-xs max-w-none text-xs leading-relaxed [&_strong]:text-purple-200">
+                <div className="prose prose-invert prose-xs max-w-none text-xs leading-relaxed [&_strong]:text-brand-light">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{chat.categoryResponse || ''}</ReactMarkdown>
                   {chat.isCategoryStreaming && (
-                    <span className="inline-block w-1.5 h-3 bg-purple-400 animate-pulse rounded-sm ml-0.5" />
+                    <span className="inline-block w-1.5 h-3 bg-brand animate-pulse rounded-sm ml-0.5" />
                   )}
                 </div>
               )}
@@ -118,12 +118,12 @@ function SpawnedChatCard({
 
           {/* Follow-up chips */}
           {chat.followUpChips.length > 0 && !chat.isStreaming && (
-            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-purple-500/10">
+            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-brand/10">
               {chat.followUpChips.map((chip, chipIdx) => (
                 <button
                   key={`${chat.id}-chip-${chipIdx}`}
                   onClick={() => onFollowUp(chat.id, chip)}
-                  className="text-[10px] px-2 py-0.5 rounded-full border border-purple-500/20 text-purple-300/60 hover:text-purple-200 hover:border-purple-500/40 hover:bg-purple-500/10 transition-colors"
+                  className="text-[10px] px-2 py-0.5 rounded-full border border-brand/20 text-brand-light/60 hover:text-brand-light hover:border-brand/40 hover:bg-brand/10 transition-colors"
                 >
                   {chip}
                 </button>
@@ -232,10 +232,10 @@ RULES:
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 px-1">
-        <span className="text-[10px] font-semibold text-purple-400/60 uppercase tracking-wide">
+        <span className="text-[10px] font-semibold text-brand/60 uppercase tracking-wide">
           {t('spawned.research')}
         </span>
-        <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 rounded-full">
+        <span className="text-[10px] bg-brand/20 text-brand-light px-1.5 rounded-full">
           {spawnedChats.length}
         </span>
       </div>

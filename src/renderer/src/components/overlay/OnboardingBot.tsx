@@ -81,7 +81,7 @@ export function OnboardingBot(): React.JSX.Element | null {
         fadeOut ? 'opacity-0 translate-y-2' : 'opacity-100'
       }`}
     >
-      <div className="bg-[hsl(220,25%,14%)] border border-blue-500/20 rounded-xl shadow-2xl overflow-hidden">
+      <div className="bg-[var(--color-bg-hover)] border border-blue-500/20 rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/5 border-b border-blue-500/10">
           <Bot className="h-4 w-4 text-blue-400" />

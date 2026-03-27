@@ -1,3 +1,4 @@
+import log, { logAppInfo } from './services/logger'
 import { app, ipcMain, BrowserWindow, systemPreferences, shell, dialog } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { basename } from 'path'
@@ -12,6 +13,7 @@ import {
   getLocalIpAddress
 } from './services/remote-view'
 import { saveTranscript, getTranscriptHistory, exportTranscript } from './services/transcript-store'
+import { getFlashcardProgress, rateFlashcard, resetFlashcardProgress, type SelfRating } from './services/flashcard-progress-store'
 import { getAuthUser, clearAuth } from './services/auth-store'
 import { startGoogleAuth } from './services/google-auth'
 import { createMainWindow } from './windows/main-window'
@@ -47,6 +49,7 @@ let mainWindow: BrowserWindow | null = null
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.sourcethread.interview-copilot')
+  logAppInfo()
 
   // Recover from previous crash where BlackHole was left as system audio output
   recoverAudioFromCrash()
@@ -78,16 +81,17 @@ app.whenReady().then(() => {
       if (!mainWindow) return
       const settings = getSettings()
       try {
-        if (settings.anthropicApiKey?.startsWith('cpk_')) {
-          // Subscribed user → SourceThread server proxy
+        const backend = settings.anthropicApiKey?.startsWith('cpk_') ? 'copilot-proxy' : 'direct'
+        log.info(`AI query [${requestId}] model=${model} backend=${backend}`)
+        if (backend === 'copilot-proxy') {
           await streamChatAnthropic(mainWindow, requestId, messages, model)
           trackQuery(model, 0, 0)
         } else {
-          // Direct Anthropic key (from settings, OpenClaw, or env) → call Anthropic API
           await streamChat(mainWindow, requestId, messages as any, model)
           trackQuery(model, 0, 0)
         }
       } catch (err: any) {
+        log.error(`AI query failed [${requestId}]:`, err.message)
         mainWindow.webContents.send('ai:error', {
           id: requestId,
           error: err.message || 'Unknown error'
@@ -112,11 +116,13 @@ app.whenReady().then(() => {
   // Live transcription — auto-enable system audio capture on macOS
   ipcMain.handle('transcription:start', (_event, captureDeviceId: number) => {
     if (!mainWindow) return
+    log.info(`Transcription starting (device=${captureDeviceId})`)
 
     // On macOS, enable BlackHole + ffmpeg mirror before starting whisper
     if (process.platform === 'darwin') {
       const result = enableSystemAudioCapture()
       if (!result.success) {
+        log.error('Audio capture setup failed:', result.error)
         mainWindow.webContents.send('transcription:error', {
           error: result.error || 'Failed to enable audio capture'
         })
@@ -128,6 +134,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('transcription:stop', () => {
+    log.info('Transcription stopped')
     stopLiveTranscription()
     // Restore audio output on macOS
     disableSystemAudioCapture()
@@ -321,6 +328,11 @@ app.whenReady().then(() => {
     return fetchCopilotApiKey(email, customerId)
   })
 
+  // Product identity (for theming)
+  ipcMain.handle('app:get-product-name', () => {
+    return app.getName()
+  })
+
   // Auth
   ipcMain.handle('auth:get-user', () => {
     return getAuthUser()
@@ -389,10 +401,12 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('remote-view:start', (_event, port: number, token: string) => {
+    log.info(`Remote view starting on port ${port}`)
     return startRemoteViewServer(port, token)
   })
 
   ipcMain.handle('remote-view:stop', () => {
+    log.info('Remote view stopped')
     stopRemoteViewServer()
   })
 
@@ -428,6 +442,19 @@ app.whenReady().then(() => {
 
   ipcMain.handle('transcript:export', (_event, id: string) => {
     return exportTranscript(id, mainWindow)
+  })
+
+  // Flashcard progress
+  ipcMain.handle('flashcards:get-progress', () => {
+    return getFlashcardProgress()
+  })
+
+  ipcMain.handle('flashcards:rate', (_event, cardId: string, rating: string) => {
+    return rateFlashcard(cardId, rating as SelfRating)
+  })
+
+  ipcMain.handle('flashcards:reset-progress', () => {
+    return resetFlashcardProgress()
   })
 
   // Onboarding
@@ -535,12 +562,18 @@ function emergencyAudioCleanup(): void {
   try {
     disableSystemAudioCapture()
   } catch {
-    // Last resort: try to restore speakers directly
+    // Last resort: try to restore speakers directly with full paths
     try {
-      require('child_process').execSync(
-        'SwitchAudioSource -s "Mac mini Speakers" -t output 2>/dev/null',
-        { encoding: 'utf-8' }
-      )
+      const paths = ['/opt/homebrew/bin/SwitchAudioSource', '/usr/local/bin/SwitchAudioSource']
+      for (const p of paths) {
+        try {
+          require('child_process').execSync(
+            `"${p}" -s "Mac mini Speakers" -t output`,
+            { encoding: 'utf-8', timeout: 5000 }
+          )
+          break
+        } catch { continue }
+      }
     } catch {
       /* nothing more we can do */
     }

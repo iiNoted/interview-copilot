@@ -1,6 +1,6 @@
 {
   "app.title": "INTERVIEW COPILOT",
-  "app.tab.prep": "Interview Prep",
+  "app.tab.prep": "Flashcards",
   "app.tab.jobs": "Jobs",
   "app.tab.resume": "Resume Builder",
   "app.tab.copilot": "Copilot",
@@ -18,7 +18,7 @@
   "gate.paywall.heading": "Interview Copilot Pro",
   "gate.paywall.subtitle": "AI-powered job search, interview prep, resume builder, and live coaching",
   "gate.paywall.feature.jobs": "Job search across multiple platforms",
-  "gate.paywall.feature.prep": "Interview prep with 22+ topic categories",
+  "gate.paywall.feature.prep": "220 technical interview flashcards across 10 categories",
   "gate.paywall.feature.resume": "AI resume builder from job qualifications",
   "gate.paywall.feature.coaching": "Live transcription + AI coaching",
   "gate.paywall.feature.remote": "Phone remote view",

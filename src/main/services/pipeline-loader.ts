@@ -17,7 +17,7 @@ const KNOWN_CATEGORIES = [
   'tm1', 'kubernetes', 'terraform', 'power-bi', 'snowflake', 'airflow',
   'databricks', 'gcp', 'cognos', 'spark', 'kafka', 'langchain', 'dbt',
   'docker', 'azure-data', 'aws-bedrock', 'mlops', 'tableau', 'hyperion',
-  'sap-fico', 'essbase', 'sap-bpc'
+  'sap-fico', 'essbase', 'sap-bpc', 'cybersecurity'
 ]
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -42,7 +42,8 @@ const DISPLAY_NAMES: Record<string, string> = {
   'hyperion': 'Oracle Hyperion / EPM',
   'sap-fico': 'SAP FICO',
   'essbase': 'Oracle Essbase / OLAP',
-  'sap-bpc': 'SAP BPC'
+  'sap-bpc': 'SAP BPC',
+  'cybersecurity': 'Cybersecurity / InfoSec'
 }
 
 export interface ArticleSummary {
@@ -342,7 +343,8 @@ export function rankCategoriesByContext(
     'hyperion': ['hyperion', 'oracle epm', 'hfm'],
     'sap-fico': ['sap fico', 'sap fi', 'sap co'],
     'essbase': ['essbase', 'oracle olap', 'calc script'],
-    'sap-bpc': ['sap bpc', 'business planning', 'sap consolidation']
+    'sap-bpc': ['sap bpc', 'business planning', 'sap consolidation'],
+    'cybersecurity': ['cybersecurity', 'security engineer', 'penetration testing', 'pentest', 'infosec', 'soc analyst', 'threat detection', 'vulnerability', 'owasp', 'encryption', 'tls', 'ssl', 'firewall', 'siem', 'incident response']
   }
 
   const resumeLower = (resumeText || '').toLowerCase()
@@ -412,7 +414,8 @@ export function getResumeDataPack(targetTitle: string, resumeText: string | null
     'hyperion': ['hyperion', 'oracle epm', 'financial planning', 'hfm'],
     'sap-fico': ['sap', 'fico', 'financial accounting', 'controlling', 'sap consultant'],
     'essbase': ['essbase', 'oracle olap', 'financial analyst', 'planning'],
-    'sap-bpc': ['sap bpc', 'business planning', 'consolidation']
+    'sap-bpc': ['sap bpc', 'business planning', 'consolidation'],
+    'cybersecurity': ['cybersecurity', 'security engineer', 'infosec', 'penetration tester', 'soc analyst', 'security architect', 'threat hunter', 'incident responder', 'application security']
   }
 
   // Score each category against the job title + resume
@@ -535,7 +538,8 @@ export function rankCategoriesByResume(
     'hyperion': ['hyperion', 'oracle epm', 'hfm'],
     'sap-fico': ['sap fico', 'sap fi', 'sap co'],
     'essbase': ['essbase', 'oracle olap', 'calc script'],
-    'sap-bpc': ['sap bpc', 'business planning', 'sap consolidation']
+    'sap-bpc': ['sap bpc', 'business planning', 'sap consolidation'],
+    'cybersecurity': ['cybersecurity', 'security engineer', 'penetration testing', 'pentest', 'infosec', 'soc analyst', 'threat detection', 'vulnerability', 'owasp', 'encryption', 'tls', 'ssl', 'firewall', 'siem', 'incident response']
   }
 
   const scored = categories.map((cat) => {

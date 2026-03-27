@@ -351,7 +351,19 @@ export function getFlatBillingState(): {
 }
 
 // Fresh server check — used by SubscriptionGate to avoid stale cached state
+// Owner emails bypass subscription check
+const OWNER_EMAILS = ['2ezrastone1@gmail.com', 'siramir097@gmail.com', 'ridamaryam@gmail.com']
+
 export async function checkFlatBillingFresh(email: string): Promise<boolean> {
+  // Owner bypass — always active
+  if (OWNER_EMAILS.includes(email.toLowerCase())) {
+    const f = store.get('flatBilling')
+    f.email = email
+    f.isActive = true
+    store.set('flatBilling', f)
+    return true
+  }
+
   try {
     const response = await net.fetch(
       `${BILLING_API}/flat-status?email=${encodeURIComponent(email)}`
