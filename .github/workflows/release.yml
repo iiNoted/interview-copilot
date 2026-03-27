@@ -15,6 +15,7 @@ jobs:
   build-mac:
     runs-on: macos-latest
     env:
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
       CSC_LINK: ${{ secrets.CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -36,10 +37,6 @@ jobs:
       - name: Create empty extraResources dirs
         run: mkdir -p pipeline-data models
 
-      - name: Skip signing if no certificate
-        if: ${{ !secrets.CSC_LINK }}
-        run: echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> $GITHUB_ENV
-
       - name: Build & package DMG (arm64)
         run: npx electron-vite build && npx electron-builder --mac dmg --arm64 --publish never
 
@@ -58,6 +55,7 @@ jobs:
   build-win:
     runs-on: windows-latest
     env:
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.WIN_CSC_LINK != '' }}
       CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
     steps:
@@ -74,12 +72,10 @@ jobs:
         run: npm ci
 
       - name: Create empty extraResources dirs
-        run: mkdir pipeline-data; mkdir models
+        run: |
+          if not exist pipeline-data mkdir pipeline-data
+          if not exist models mkdir models
         shell: cmd
-
-      - name: Skip signing if no certificate
-        if: ${{ !secrets.WIN_CSC_LINK }}
-        run: echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> $env:GITHUB_ENV
 
       - name: Build & package Windows installer
         run: npm run build && npx electron-builder --win --publish never
