@@ -1,4 +1,3 @@
-import { net } from 'electron'
 import * as https from 'node:https'
 import Store from 'electron-store'
 

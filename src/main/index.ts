@@ -25,8 +25,6 @@ import { saveResume, getResume, clearResume } from './services/resume-store'
 import { getSettings, updateSettings, type AppSettings } from './services/settings-store'
 import { trackQuery, getSessionUsage, getUsageHistory } from './services/usage-tracker'
 import {
-  reportUsage,
-  calculateCredits,
   createCheckoutSession,
   openCustomerPortal,
   getBillingState,
