@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Build & package DMG (arm64)
-        run: electron-vite build && electron-builder --mac dmg --arm64 --publish never
+        run: npx electron-vite build && npx electron-builder --mac dmg --arm64 --publish never
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -76,7 +76,7 @@ jobs:
         run: npm ci
 
       - name: Build & package MAS pkg (arm64)
-        run: electron-vite build && electron-builder --mac mas --arm64 --publish never
+        run: npx electron-vite build && npx electron-builder --mac mas --arm64 --publish never
 
       - name: Upload MAS artifacts
         uses: actions/upload-artifact@v4
