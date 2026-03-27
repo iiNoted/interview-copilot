@@ -7,13 +7,15 @@ import remarkGfm from 'remark-gfm'
 import {
   Search, RotateCcw, ChevronRight, ChevronLeft,
   Binary, Network, Globe, Server, Database, Cloud,
-  Blocks, FileCode2, Code2, Coffee, Shield
+  Blocks, FileCode2, Code2, Coffee, Shield,
+  Brain, Zap, Anchor, Filter, Share2, Wifi, Terminal, Cog, Smartphone, GitBranch
 } from 'lucide-react'
 
 // Map icon string names from JSON to actual Lucide components
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Binary, Network, Globe, Server, Database, Cloud, Shield,
-  Blocks, FileCode2, Code2, Coffee
+  Blocks, FileCode2, Code2, Coffee,
+  Brain, Zap, Anchor, Filter, Share2, Wifi, Terminal, Cog, Smartphone, GitBranch
 }
 
 // Tailwind color map for category accent colors
@@ -27,7 +29,16 @@ const COLOR_MAP: Record<string, { bg: string; border: string; text: string; ring
   pink:    { bg: 'bg-pink-500/10',    border: 'border-pink-500/30',    text: 'text-pink-400',    ring: 'stroke-pink-400' },
   yellow:  { bg: 'bg-yellow-500/10',  border: 'border-yellow-500/30',  text: 'text-yellow-400',  ring: 'stroke-yellow-400' },
   red:     { bg: 'bg-red-500/10',     border: 'border-red-500/30',     text: 'text-red-400',     ring: 'stroke-red-400' },
-  indigo:  { bg: 'bg-indigo-500/10',  border: 'border-indigo-500/30',  text: 'text-indigo-400',  ring: 'stroke-indigo-400' }
+  indigo:  { bg: 'bg-indigo-500/10',  border: 'border-indigo-500/30',  text: 'text-indigo-400',  ring: 'stroke-indigo-400' },
+  purple:  { bg: 'bg-purple-500/10',  border: 'border-purple-500/30',  text: 'text-purple-400',  ring: 'stroke-purple-400' },
+  rose:    { bg: 'bg-rose-500/10',    border: 'border-rose-500/30',    text: 'text-rose-400',    ring: 'stroke-rose-400' },
+  teal:    { bg: 'bg-teal-500/10',    border: 'border-teal-500/30',    text: 'text-teal-400',    ring: 'stroke-teal-400' },
+  lime:    { bg: 'bg-lime-500/10',    border: 'border-lime-500/30',    text: 'text-lime-400',    ring: 'stroke-lime-400' },
+  sky:     { bg: 'bg-sky-500/10',     border: 'border-sky-500/30',     text: 'text-sky-400',     ring: 'stroke-sky-400' },
+  slate:   { bg: 'bg-slate-500/10',   border: 'border-slate-500/30',   text: 'text-slate-400',   ring: 'stroke-slate-400' },
+  stone:   { bg: 'bg-stone-500/10',   border: 'border-stone-500/30',   text: 'text-stone-400',   ring: 'stroke-stone-400' },
+  fuchsia: { bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/30', text: 'text-fuchsia-400', ring: 'stroke-fuchsia-400' },
+  zinc:    { bg: 'bg-zinc-500/10',    border: 'border-zinc-500/30',    text: 'text-zinc-400',    ring: 'stroke-zinc-400' }
 }
 
 const DIFFICULTY_COLORS: Record<Difficulty, string> = {

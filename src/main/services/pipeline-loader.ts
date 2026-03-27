@@ -17,7 +17,13 @@ const KNOWN_CATEGORIES = [
   'tm1', 'kubernetes', 'terraform', 'power-bi', 'snowflake', 'airflow',
   'databricks', 'gcp', 'cognos', 'spark', 'kafka', 'langchain', 'dbt',
   'docker', 'azure-data', 'aws-bedrock', 'mlops', 'tableau', 'hyperion',
-  'sap-fico', 'essbase', 'sap-bpc', 'cybersecurity'
+  'sap-fico', 'essbase', 'sap-bpc', 'cybersecurity', 'behavioral',
+  'leadership', 'system-design', 'algorithms', 'data-science',
+  'sql-analytics', 'sap-hana', 'sap-basis', 'sap-abap', 'sap-mm-sd',
+  'web-dev', 'pm-interviews',
+  'machine-learning', 'react-typescript', 'data-engineering',
+  'distributed-systems', 'networking', 'operating-systems',
+  'go-rust', 'mobile-dev', 'graphql'
 ]
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -43,7 +49,28 @@ const DISPLAY_NAMES: Record<string, string> = {
   'sap-fico': 'SAP FICO',
   'essbase': 'Oracle Essbase / OLAP',
   'sap-bpc': 'SAP BPC',
-  'cybersecurity': 'Cybersecurity / InfoSec'
+  'cybersecurity': 'Cybersecurity / InfoSec',
+  'behavioral': 'Behavioral Interviews',
+  'leadership': 'Engineering Leadership',
+  'system-design': 'System Design',
+  'algorithms': 'Algorithms & Data Structures',
+  'data-science': 'Data Science / ML',
+  'sql-analytics': 'SQL & Analytics',
+  'sap-hana': 'SAP HANA',
+  'sap-basis': 'SAP Basis',
+  'sap-abap': 'SAP ABAP / Fiori',
+  'sap-mm-sd': 'SAP MM / SD',
+  'web-dev': 'Web Development',
+  'pm-interviews': 'Product Management',
+  'machine-learning': 'Machine Learning & AI',
+  'react-typescript': 'React & TypeScript',
+  'data-engineering': 'Data Engineering',
+  'distributed-systems': 'Distributed Systems',
+  'networking': 'Networking & Protocols',
+  'operating-systems': 'Operating Systems & Linux',
+  'go-rust': 'Go & Rust',
+  'mobile-dev': 'Mobile Development',
+  'graphql': 'GraphQL & APIs'
 }
 
 export interface ArticleSummary {
@@ -344,7 +371,28 @@ export function rankCategoriesByContext(
     'sap-fico': ['sap fico', 'sap fi', 'sap co'],
     'essbase': ['essbase', 'oracle olap', 'calc script'],
     'sap-bpc': ['sap bpc', 'business planning', 'sap consolidation'],
-    'cybersecurity': ['cybersecurity', 'security engineer', 'penetration testing', 'pentest', 'infosec', 'soc analyst', 'threat detection', 'vulnerability', 'owasp', 'encryption', 'tls', 'ssl', 'firewall', 'siem', 'incident response']
+    'cybersecurity': ['cybersecurity', 'security engineer', 'penetration testing', 'pentest', 'infosec', 'soc analyst', 'threat detection', 'vulnerability', 'owasp', 'encryption', 'tls', 'ssl', 'firewall', 'siem', 'incident response'],
+    'behavioral': ['behavioral', 'STAR', 'soft skills', 'communication', 'teamwork', 'leadership', 'culture fit'],
+    'leadership': ['engineering manager', 'director', 'VP', 'management', 'delegation', 'OKRs', 'scaling'],
+    'system-design': ['system design', 'architecture', 'scalability', 'microservices', 'distributed', 'load balancing'],
+    'algorithms': ['algorithm', 'data structure', 'leetcode', 'dynamic programming', 'BFS', 'DFS', 'sorting'],
+    'data-science': ['data science', 'machine learning', 'statistics', 'A/B testing', 'ML', 'deep learning', 'NLP'],
+    'sql-analytics': ['SQL', 'analytics', 'data analyst', 'business intelligence', 'metrics', 'dashboard', 'KPI'],
+    'sap-hana': ['SAP HANA', 'in-memory', 'calculation view', 'SQLScript', 'BW/4HANA'],
+    'sap-basis': ['SAP Basis', 'transport', 'authorization', 'PFCG', 'system monitoring', 'S/4HANA migration'],
+    'sap-abap': ['ABAP', 'CDS view', 'Fiori', 'UI5', 'BAPI', 'RFC', 'BAdI'],
+    'sap-mm-sd': ['SAP MM', 'SAP SD', 'procurement', 'sales order', 'materials management', 'order to cash'],
+    'web-dev': ['web development', 'JavaScript', 'React', 'Node.js', 'HTML', 'CSS', 'frontend', 'full stack', 'REST API'],
+    'pm-interviews': ['product manager', 'product management', 'product sense', 'Fermi', 'prioritization', 'roadmap'],
+    'machine-learning': ['machine learning', 'deep learning', 'neural network', 'pytorch', 'tensorflow', 'scikit-learn', 'NLP', 'computer vision', 'transformers', 'gradient descent'],
+    'react-typescript': ['react', 'typescript', 'next.js', 'nextjs', 'hooks', 'redux', 'zustand', 'jsx', 'tsx', 'react native'],
+    'data-engineering': ['data engineering', 'ETL', 'ELT', 'data pipeline', 'data warehouse', 'data lake', 'lakehouse', 'parquet', 'delta lake'],
+    'distributed-systems': ['distributed systems', 'consensus', 'replication', 'sharding', 'CAP theorem', 'Raft', 'Paxos', 'eventual consistency'],
+    'networking': ['networking', 'TCP/IP', 'HTTP', 'DNS', 'TLS', 'load balancer', 'CDN', 'BGP', 'OSI model', 'WebSocket'],
+    'operating-systems': ['operating systems', 'Linux', 'kernel', 'process', 'thread', 'memory management', 'filesystem', 'systemd', 'cgroups'],
+    'go-rust': ['golang', 'go lang', 'rust', 'goroutine', 'ownership', 'borrowing', 'tokio', 'cargo'],
+    'mobile-dev': ['iOS', 'android', 'swift', 'kotlin', 'react native', 'flutter', 'mobile development', 'SwiftUI', 'Jetpack Compose'],
+    'graphql': ['graphql', 'apollo', 'schema', 'resolver', 'mutation', 'subscription', 'federation', 'hasura']
   }
 
   const resumeLower = (resumeText || '').toLowerCase()
@@ -415,7 +463,28 @@ export function getResumeDataPack(targetTitle: string, resumeText: string | null
     'sap-fico': ['sap', 'fico', 'financial accounting', 'controlling', 'sap consultant'],
     'essbase': ['essbase', 'oracle olap', 'financial analyst', 'planning'],
     'sap-bpc': ['sap bpc', 'business planning', 'consolidation'],
-    'cybersecurity': ['cybersecurity', 'security engineer', 'infosec', 'penetration tester', 'soc analyst', 'security architect', 'threat hunter', 'incident responder', 'application security']
+    'cybersecurity': ['cybersecurity', 'security engineer', 'infosec', 'penetration tester', 'soc analyst', 'security architect', 'threat hunter', 'incident responder', 'application security'],
+    'behavioral': ['behavioral', 'STAR', 'soft skills', 'communication', 'teamwork', 'leadership', 'culture fit'],
+    'leadership': ['engineering manager', 'director', 'VP', 'management', 'delegation', 'OKRs', 'scaling'],
+    'system-design': ['system design', 'architecture', 'scalability', 'microservices', 'distributed', 'load balancing'],
+    'algorithms': ['algorithm', 'data structure', 'leetcode', 'dynamic programming', 'BFS', 'DFS', 'sorting'],
+    'data-science': ['data science', 'machine learning', 'statistics', 'A/B testing', 'ML', 'deep learning', 'NLP'],
+    'sql-analytics': ['SQL', 'analytics', 'data analyst', 'business intelligence', 'metrics', 'dashboard', 'KPI'],
+    'sap-hana': ['SAP HANA', 'in-memory', 'calculation view', 'SQLScript', 'BW/4HANA'],
+    'sap-basis': ['SAP Basis', 'transport', 'authorization', 'PFCG', 'system monitoring', 'S/4HANA migration'],
+    'sap-abap': ['ABAP', 'CDS view', 'Fiori', 'UI5', 'BAPI', 'RFC', 'BAdI'],
+    'sap-mm-sd': ['SAP MM', 'SAP SD', 'procurement', 'sales order', 'materials management', 'order to cash'],
+    'web-dev': ['web development', 'JavaScript', 'React', 'Node.js', 'HTML', 'CSS', 'frontend', 'full stack', 'REST API'],
+    'pm-interviews': ['product manager', 'product management', 'product sense', 'Fermi', 'prioritization', 'roadmap'],
+    'machine-learning': ['machine learning', 'ML engineer', 'data scientist', 'deep learning', 'AI researcher', 'NLP engineer', 'computer vision'],
+    'react-typescript': ['react', 'frontend engineer', 'frontend developer', 'typescript', 'UI engineer', 'next.js'],
+    'data-engineering': ['data engineer', 'ETL developer', 'data platform', 'analytics engineer', 'data architect'],
+    'distributed-systems': ['distributed systems', 'backend engineer', 'systems engineer', 'platform engineer', 'infrastructure'],
+    'networking': ['network engineer', 'network administrator', 'infrastructure engineer', 'systems administrator', 'TCP/IP'],
+    'operating-systems': ['systems engineer', 'Linux administrator', 'site reliability', 'SRE', 'systems programmer', 'kernel'],
+    'go-rust': ['go developer', 'golang', 'rust developer', 'systems programmer', 'backend engineer'],
+    'mobile-dev': ['mobile developer', 'iOS developer', 'android developer', 'mobile engineer', 'flutter', 'react native'],
+    'graphql': ['graphql', 'API engineer', 'full stack', 'backend developer', 'apollo', 'API developer']
   }
 
   // Score each category against the job title + resume
@@ -539,7 +608,28 @@ export function rankCategoriesByResume(
     'sap-fico': ['sap fico', 'sap fi', 'sap co'],
     'essbase': ['essbase', 'oracle olap', 'calc script'],
     'sap-bpc': ['sap bpc', 'business planning', 'sap consolidation'],
-    'cybersecurity': ['cybersecurity', 'security engineer', 'penetration testing', 'pentest', 'infosec', 'soc analyst', 'threat detection', 'vulnerability', 'owasp', 'encryption', 'tls', 'ssl', 'firewall', 'siem', 'incident response']
+    'cybersecurity': ['cybersecurity', 'security engineer', 'penetration testing', 'pentest', 'infosec', 'soc analyst', 'threat detection', 'vulnerability', 'owasp', 'encryption', 'tls', 'ssl', 'firewall', 'siem', 'incident response'],
+    'behavioral': ['behavioral', 'STAR', 'soft skills', 'communication', 'teamwork', 'leadership', 'culture fit'],
+    'leadership': ['engineering manager', 'director', 'VP', 'management', 'delegation', 'OKRs', 'scaling'],
+    'system-design': ['system design', 'architecture', 'scalability', 'microservices', 'distributed', 'load balancing'],
+    'algorithms': ['algorithm', 'data structure', 'leetcode', 'dynamic programming', 'BFS', 'DFS', 'sorting'],
+    'data-science': ['data science', 'machine learning', 'statistics', 'A/B testing', 'ML', 'deep learning', 'NLP'],
+    'sql-analytics': ['SQL', 'analytics', 'data analyst', 'business intelligence', 'metrics', 'dashboard', 'KPI'],
+    'sap-hana': ['SAP HANA', 'in-memory', 'calculation view', 'SQLScript', 'BW/4HANA'],
+    'sap-basis': ['SAP Basis', 'transport', 'authorization', 'PFCG', 'system monitoring', 'S/4HANA migration'],
+    'sap-abap': ['ABAP', 'CDS view', 'Fiori', 'UI5', 'BAPI', 'RFC', 'BAdI'],
+    'sap-mm-sd': ['SAP MM', 'SAP SD', 'procurement', 'sales order', 'materials management', 'order to cash'],
+    'web-dev': ['web development', 'JavaScript', 'React', 'Node.js', 'HTML', 'CSS', 'frontend', 'full stack', 'REST API'],
+    'pm-interviews': ['product manager', 'product management', 'product sense', 'Fermi', 'prioritization', 'roadmap'],
+    'machine-learning': ['machine learning', 'deep learning', 'neural network', 'pytorch', 'tensorflow', 'scikit-learn', 'NLP', 'computer vision', 'transformers', 'gradient descent'],
+    'react-typescript': ['react', 'typescript', 'next.js', 'nextjs', 'hooks', 'redux', 'zustand', 'jsx', 'tsx', 'react native'],
+    'data-engineering': ['data engineering', 'ETL', 'ELT', 'data pipeline', 'data warehouse', 'data lake', 'lakehouse', 'parquet', 'delta lake'],
+    'distributed-systems': ['distributed systems', 'consensus', 'replication', 'sharding', 'CAP theorem', 'Raft', 'Paxos', 'eventual consistency'],
+    'networking': ['networking', 'TCP/IP', 'HTTP', 'DNS', 'TLS', 'load balancer', 'CDN', 'BGP', 'OSI model', 'WebSocket'],
+    'operating-systems': ['operating systems', 'Linux', 'kernel', 'process', 'thread', 'memory management', 'filesystem', 'systemd', 'cgroups'],
+    'go-rust': ['golang', 'go lang', 'rust', 'goroutine', 'ownership', 'borrowing', 'tokio', 'cargo'],
+    'mobile-dev': ['iOS', 'android', 'swift', 'kotlin', 'react native', 'flutter', 'mobile development', 'SwiftUI', 'Jetpack Compose'],
+    'graphql': ['graphql', 'apollo', 'schema', 'resolver', 'mutation', 'subscription', 'federation', 'hasura']
   }
 
   const scored = categories.map((cat) => {
