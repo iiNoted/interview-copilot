@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import QRCode from 'qrcode'
 import { useOverlayStore } from '@renderer/stores/overlay-store'
 import { useT } from '@renderer/i18n/context'
-import { ALL_LOCALES, LOCALE_NAMES, type Locale } from '@renderer/i18n/types'
+import { ALL_LOCALES, LOCALE_NAMES } from '@renderer/i18n/types'
 import { Button } from '@renderer/components/ui/button'
 import {
   X,
@@ -10,8 +10,6 @@ import {
   EyeOff,
   FileText,
   Briefcase,
-  Zap,
-  Key,
   CreditCard,
   ExternalLink,
   LogOut,
@@ -38,7 +36,6 @@ const MODELS = [
 export function SettingsPanel(): React.JSX.Element {
   const { t, locale, setLocale } = useT()
   const {
-    aiBackend,
     setAiBackend,
     currentModel,
     setModel,
@@ -125,7 +122,7 @@ export function SettingsPanel(): React.JSX.Element {
       setUpdateStatus(data.status)
       if (data.version) setUpdateVersion(data.version)
     })
-    return unsub
+    return () => { unsub() }
   }, [])
 
   // Load settings from main process
@@ -168,11 +165,6 @@ export function SettingsPanel(): React.JSX.Element {
 
   async function saveApiKey(): Promise<void> {
     await window.api.updateSettings({ anthropicApiKey: apiKey || null })
-  }
-
-  async function switchBackend(backend: 'openclaw' | 'anthropic'): Promise<void> {
-    setAiBackend(backend)
-    await window.api.updateSettings({ aiBackend: backend })
   }
 
   async function handleUploadResume(): Promise<void> {

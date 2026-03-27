@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import DOMPurify from 'dompurify'
 import { useJobStore, type JobListing } from '@renderer/stores/job-store'
-import { useOverlayStore } from '@renderer/stores/overlay-store'
 import { useT } from '@renderer/i18n/context'
 import { formatSalary as formatSalaryI18n } from '@renderer/i18n/currency'
 import { LOCALE_COUNTRY, ALL_LOCALES, LOCALE_NAMES, type Locale } from '@renderer/i18n/types'
