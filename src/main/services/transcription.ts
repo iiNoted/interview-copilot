@@ -2,11 +2,16 @@ import { BrowserWindow, app } from 'electron'
 import { spawn, ChildProcess } from 'child_process'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { getProvisionedWhisperPath, getProvisionedModelPath } from './whisper-provisioner'
 
-// Resolve whisper-stream binary: bundled in resources first, then system PATH
+// Resolve whisper-stream binary: provisioned dir first, then bundled, then system PATH
 function getWhisperPath(): string {
   const platform = process.platform
   const binaryName = platform === 'win32' ? 'whisper-stream.exe' : 'whisper-stream'
+
+  // Check auto-provisioned (Windows)
+  const provisioned = getProvisionedWhisperPath()
+  if (provisioned) return provisioned
 
   // Check bundled in app resources
   const resourcePath = join(app.isPackaged ? process.resourcesPath : join(__dirname, '../../resources'), binaryName)
@@ -33,9 +38,13 @@ function getWhisperPath(): string {
   return 'whisper-stream' // Fallback to PATH
 }
 
-// Resolve model path: check app resources, then project dir
+// Resolve model path: provisioned dir first, then app resources, then project dir
 function getModelPath(): string {
   const modelName = 'ggml-base.en.bin'
+
+  // Check auto-provisioned
+  const provisioned = getProvisionedModelPath()
+  if (provisioned) return provisioned
 
   // Bundled in resources/models
   const resourceModel = join(
@@ -114,7 +123,13 @@ export function startLiveTranscription(
     env.PATH = `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${env.PATH || ''}`
   }
 
-  streamProc = spawn(whisperPath, args, { env })
+  // On Windows, add whisper-stream directory to PATH so DLLs are found
+  const whisperDir = require('path').dirname(whisperPath)
+  if (process.platform === 'win32' && whisperDir) {
+    env.PATH = `${whisperDir};${env.PATH || ''}`
+  }
+
+  streamProc = spawn(whisperPath, args, { env, cwd: whisperDir || undefined })
 
   let buffer = ''
 
@@ -201,8 +216,12 @@ export function listAudioDevices(): Promise<string> {
     if (process.platform === 'darwin') {
       env.PATH = `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${env.PATH || ''}`
     }
+    const devWhisperDir = require('path').dirname(whisperPath)
+    if (process.platform === 'win32' && devWhisperDir) {
+      env.PATH = `${devWhisperDir};${env.PATH || ''}`
+    }
 
-    const proc = spawn(whisperPath, ['-c', '999', '-m', modelPath], { env })
+    const proc = spawn(whisperPath, ['-c', '999', '-m', modelPath], { env, cwd: devWhisperDir || undefined })
 
     let output = ''
     proc.stderr?.on('data', (data: Buffer) => {

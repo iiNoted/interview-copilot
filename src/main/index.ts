@@ -45,8 +45,32 @@ import { getCategories, getCategoryDetail, getArticleContent, rankCategoriesByRe
 import { searchJobs, getJobDetail } from './services/job-search'
 import { execSync } from 'child_process'
 import { setupAutoUpdater } from './services/auto-updater'
+import { isWhisperProvisioned, isModelProvisioned, provisionAll } from './services/whisper-provisioner'
 
 let mainWindow: BrowserWindow | null = null
+
+/** Fire-and-forget telemetry ping to server */
+function trackAppEvent(event: string, extra?: Record<string, string>): void {
+  const { net } = require('electron') as typeof import('electron')
+  const user = getAuthUser()
+  const body = JSON.stringify({
+    event,
+    email: user?.email || null,
+    appVersion: app.getVersion(),
+    platform: process.platform,
+    productId: app.getName().toLowerCase().replace(/\s+/g, '-'),
+    osVersion: process.getSystemVersion(),
+    arch: process.arch,
+    ...extra,
+  })
+  try {
+    const req = net.request({ method: 'POST', url: 'https://copilot.sourcethread.com/api/copilot/events' })
+    req.setHeader('Content-Type', 'application/json')
+    req.on('error', () => {}) // silent fail
+    req.write(body)
+    req.end()
+  } catch { /* silent */ }
+}
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId(`com.sourcethread.${app.getName().toLowerCase().replace(/\s+/g, '-')}`)
@@ -72,6 +96,20 @@ app.whenReady().then(() => {
   // Auto-updater (skip in dev)
   if (app.isPackaged) {
     setupAutoUpdater(mainWindow)
+  }
+
+  // Track app launch (fire-and-forget)
+  trackAppEvent('launch')
+
+  // Auto-provision whisper-stream on Windows if missing
+  if (process.platform === 'win32' && (!isWhisperProvisioned() || !isModelProvisioned())) {
+    provisionAll((msg) => {
+      console.log('[whisper-provision]', msg)
+      mainWindow?.webContents.send('whisper:provision-progress', msg)
+    }).then((ok) => {
+      if (ok) console.log('[whisper-provision] Complete')
+      else console.error('[whisper-provision] Failed — transcription will not work')
+    })
   }
 
   // --- IPC Handlers ---
@@ -162,6 +200,18 @@ app.whenReady().then(() => {
 
   ipcMain.handle('audio:disable-capture', () => {
     disableSystemAudioCapture()
+  })
+
+  // Whisper provisioning (Windows auto-download)
+  ipcMain.handle('whisper:status', () => ({
+    whisperReady: isWhisperProvisioned(),
+    modelReady: isModelProvisioned(),
+  }))
+
+  ipcMain.handle('whisper:provision', async () => {
+    return provisionAll((msg) => {
+      mainWindow?.webContents.send('whisper:provision-progress', msg)
+    })
   })
 
   // Resume upload
