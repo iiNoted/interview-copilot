@@ -22,6 +22,7 @@ import { registerHotkeys, unregisterHotkeys } from './services/hotkeys'
 import { createTray } from './services/tray'
 import { streamChat } from './services/openclaw-client'
 import { streamChatAnthropic } from './services/anthropic-client'
+import { streamChatOpenAI } from './services/openai-client'
 import { startLiveTranscription, stopLiveTranscription, listAudioDevices, parseAudioDevices } from './services/transcription'
 import { checkAudioSetup, enableSystemAudioCapture, disableSystemAudioCapture, recoverAudioFromCrash } from './services/audio-setup'
 import { saveResume, getResume, clearResume } from './services/resume-store'
@@ -121,9 +122,20 @@ app.whenReady().then(() => {
       if (!mainWindow) return
       const settings = getSettings()
       try {
-        const backend = settings.anthropicApiKey?.startsWith('cpk_') ? 'copilot-proxy' : 'direct'
+        // Determine backend: OpenAI key → openai, cpk_ → copilot-proxy, otherwise → direct anthropic
+        let backend: string
+        if (settings.openaiApiKey && model.startsWith('gpt-')) {
+          backend = 'openai'
+        } else if (settings.anthropicApiKey?.startsWith('cpk_')) {
+          backend = 'copilot-proxy'
+        } else {
+          backend = 'direct'
+        }
         log.info(`AI query [${requestId}] model=${model} backend=${backend}`)
-        if (backend === 'copilot-proxy') {
+        if (backend === 'openai') {
+          await streamChatOpenAI(mainWindow, requestId, messages, model, settings.openaiApiKey!)
+          trackQuery(model, 0, 0)
+        } else if (backend === 'copilot-proxy') {
           await streamChatAnthropic(mainWindow, requestId, messages, model)
           trackQuery(model, 0, 0)
         } else {
@@ -320,7 +332,7 @@ app.whenReady().then(() => {
   ipcMain.handle('settings:update', (_event, partial: Record<string, unknown>) => {
     // Whitelist allowed keys — prevent renderer from overwriting sensitive fields
     const ALLOWED_SETTINGS_KEYS = new Set([
-      'aiBackend', 'anthropicApiKey', 'preferredModel', 'onboardingComplete',
+      'aiBackend', 'anthropicApiKey', 'openaiApiKey', 'preferredModel', 'onboardingComplete',
       'remoteViewEnabled', 'remoteViewPort', 'locale'
     ])
     const sanitized: Record<string, unknown> = {}

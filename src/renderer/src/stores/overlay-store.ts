@@ -53,7 +53,7 @@ interface OverlayState {
   selectedAudioDeviceId: number
 
   // AI sidebar state
-  aiBackend: 'openclaw' | 'anthropic'
+  aiBackend: 'openclaw' | 'anthropic' | 'openai'
   detectedQuestions: DetectedQuestion[]
   processedTranscriptIndices: Set<number>
 
@@ -126,7 +126,7 @@ interface OverlayState {
 export const useOverlayStore = create<OverlayState>((set) => ({
   mode: 'expanded',
   isTranscribing: false,
-  currentModel: 'claude-haiku-4-5-20251001',
+  currentModel: 'gpt-4o-mini',
   messages: [],
   transcript: [],
   webSearchEnabled: false,
@@ -137,7 +137,7 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   jobFilename: null,
   showSettings: false,
   selectedAudioDeviceId: 0,
-  aiBackend: 'openclaw',
+  aiBackend: 'openai',
   detectedQuestions: [],
   processedTranscriptIndices: new Set(),
   spawnedChats: [],

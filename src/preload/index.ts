@@ -134,6 +134,7 @@ const api = {
   getSettings: (): Promise<{
     aiBackend: string
     anthropicApiKey: string | null
+    openaiApiKey: string | null
     preferredModel: string
     stripeCustomerId: string | null
     remoteViewEnabled: boolean

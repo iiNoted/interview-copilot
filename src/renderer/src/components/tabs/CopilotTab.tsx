@@ -19,6 +19,9 @@ import { ChevronDown, Zap, Key } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 
 const MODELS = [
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+  { id: 'gpt-4o', label: 'GPT-4o' },
+  { id: 'gpt-4.1', label: 'GPT-4.1' },
   { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' },
   { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6' },
   { id: 'claude-opus-4-6', label: 'Opus 4.6' }

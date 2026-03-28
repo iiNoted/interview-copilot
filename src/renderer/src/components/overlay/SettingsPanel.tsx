@@ -27,10 +27,16 @@ import {
   AlertCircle
 } from 'lucide-react'
 
-const MODELS = [
-  { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', speedKey: 'settings.model.fastest' as const },
-  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', speedKey: 'settings.model.balanced' as const },
-  { id: 'claude-opus-4-6', label: 'Opus 4.6', speedKey: 'settings.model.best' as const }
+const OPENAI_MODELS = [
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Fast & cheap' },
+  { id: 'gpt-4o', label: 'GPT-4o', desc: 'Balanced' },
+  { id: 'gpt-4.1', label: 'GPT-4.1', desc: 'Best' }
+]
+
+const CLAUDE_MODELS = [
+  { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', desc: 'Fast & cheap' },
+  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', desc: 'Balanced' },
+  { id: 'claude-opus-4-6', label: 'Opus 4.6', desc: 'Best' }
 ]
 
 export function SettingsPanel(): React.JSX.Element {
@@ -58,7 +64,9 @@ export function SettingsPanel(): React.JSX.Element {
   const [jobTextInput, setJobTextInput] = useState('')
 
   const [apiKey, setApiKey] = useState('')
+  const [openaiKey, setOpenaiKey] = useState('')
   const [showKey, setShowKey] = useState(false)
+  const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [billingEmail, setBillingEmail] = useState('')
   const [usage, setUsage] = useState<{
     queries: number
@@ -129,7 +137,8 @@ export function SettingsPanel(): React.JSX.Element {
   useEffect(() => {
     window.api.getSettings().then((s) => {
       if (s.anthropicApiKey) setApiKey(s.anthropicApiKey)
-      setAiBackend(s.aiBackend as 'openclaw' | 'anthropic')
+      if (s.openaiApiKey) setOpenaiKey(s.openaiApiKey)
+      setAiBackend(s.aiBackend as 'openclaw' | 'anthropic' | 'openai')
       setRemotePort(s.remoteViewPort || 18791)
       setRemoteToken(s.remoteViewToken || null)
     })
@@ -322,10 +331,70 @@ export function SettingsPanel(): React.JSX.Element {
           </section>
         )}
 
-        {/* AI Connection */}
+        {/* AI Connection — OpenAI */}
         <section className="space-y-2">
           <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide">
-            AI Connection
+            OpenAI API Key
+          </h3>
+          {openaiKey ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+                <div className="h-2 w-2 rounded-full bg-green-400"></div>
+                <span className="text-xs text-white/70">OpenAI connected</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto h-5 text-[10px] text-red-400/60 hover:text-red-400"
+                  onClick={async () => {
+                    setOpenaiKey('')
+                    await window.api.updateSettings({ openaiApiKey: null })
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <input
+                  type={showOpenaiKey ? 'text' : 'password'}
+                  value={openaiKey}
+                  onChange={(e) => setOpenaiKey(e.target.value)}
+                  placeholder="sk-..."
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-green-500/50"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-white/30"
+                  onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                >
+                  {showOpenaiKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[10px]"
+                  onClick={async () => {
+                    await window.api.updateSettings({ openaiApiKey: openaiKey || null })
+                  }}
+                  disabled={!openaiKey.startsWith('sk-')}
+                >
+                  Save
+                </Button>
+              </div>
+              <p className="text-[10px] text-white/20">
+                Get your key at platform.openai.com/api-keys
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* AI Connection — Anthropic (optional) */}
+        <section className="space-y-2">
+          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide">
+            Anthropic Key (optional)
           </h3>
           {apiKey?.startsWith('cpk_') ? (
             <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
@@ -352,10 +421,6 @@ export function SettingsPanel(): React.JSX.Element {
             </div>
           ) : (
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
-                <div className="h-2 w-2 rounded-full bg-yellow-400"></div>
-                <span className="text-xs text-white/50">Using OpenClaw / local key</span>
-              </div>
               <div className="flex items-center gap-1.5">
                 <input
                   type={showKey ? 'text' : 'password'}
@@ -383,7 +448,7 @@ export function SettingsPanel(): React.JSX.Element {
                 </Button>
               </div>
               <p className="text-[10px] text-white/20">
-                Subscribers connect automatically. This is for dev/testing only.
+                For Claude models. Leave blank to use OpenAI only.
               </p>
             </div>
           )}
@@ -392,8 +457,29 @@ export function SettingsPanel(): React.JSX.Element {
         {/* Model */}
         <section className="space-y-2">
           <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide">{t('settings.model')}</h3>
+          <p className="text-[10px] text-white/30">OpenAI</p>
           <div className="space-y-1">
-            {MODELS.map((m) => (
+            {OPENAI_MODELS.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  setModel(m.id)
+                  window.api.updateSettings({ preferredModel: m.id })
+                }}
+                className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${
+                  currentModel === m.id
+                    ? 'border-green-500/40 bg-green-500/10 text-green-300'
+                    : 'border-white/10 text-white/50 hover:border-white/20'
+                }`}
+              >
+                <span>{m.label}</span>
+                <span className="text-[10px] text-white/30">{m.desc}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-white/30 mt-2">Claude (requires Anthropic key)</p>
+          <div className="space-y-1">
+            {CLAUDE_MODELS.map((m) => (
               <button
                 key={m.id}
                 onClick={() => {
@@ -407,7 +493,7 @@ export function SettingsPanel(): React.JSX.Element {
                 }`}
               >
                 <span>{m.label}</span>
-                <span className="text-[10px] text-white/30">{t(m.speedKey)}</span>
+                <span className="text-[10px] text-white/30">{m.desc}</span>
               </button>
             ))}
           </div>

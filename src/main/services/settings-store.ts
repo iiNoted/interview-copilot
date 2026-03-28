@@ -1,8 +1,9 @@
 import Store from 'electron-store'
 
 export interface AppSettings {
-  aiBackend: 'openclaw' | 'anthropic'
+  aiBackend: 'openclaw' | 'anthropic' | 'openai'
   anthropicApiKey: string | null
+  openaiApiKey: string | null
   preferredModel: string
   stripeCustomerId: string | null
   onboardingComplete: boolean
@@ -15,9 +16,10 @@ export interface AppSettings {
 const store = new Store<{ settings: AppSettings }>({
   defaults: {
     settings: {
-      aiBackend: 'anthropic',
+      aiBackend: 'openai',
       anthropicApiKey: null,
-      preferredModel: 'claude-haiku-4-5-20251001',
+      openaiApiKey: null,
+      preferredModel: 'gpt-4o-mini',
       stripeCustomerId: null,
       onboardingComplete: false,
       remoteViewEnabled: false,
