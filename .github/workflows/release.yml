@@ -169,7 +169,6 @@ jobs:
                 - "*.bin"
           win:
             executableName: ${{ matrix.product.id }}
-            signingHashAlgorithms: [sha256]
             target:
               - target: nsis
                 arch: [x64]
@@ -186,7 +185,10 @@ jobs:
             identityName: "${{ matrix.product.identity }}"
             applicationId: "${{ matrix.product.id }}"
             languages: ["en-US"]
-            capabilities: microphone internetClient internetClientServer
+            capabilities:
+              - microphone
+              - internetClient
+              - internetClientServer
             artifactName: ${{ matrix.product.id }}-${version}.${ext}
           npmRebuild: false
           publish:
