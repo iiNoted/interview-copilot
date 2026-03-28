@@ -1,5 +1,5 @@
 import log, { logAppInfo } from './services/logger'
-import { app, ipcMain, BrowserWindow, systemPreferences, shell, dialog } from 'electron'
+import { app, ipcMain, BrowserWindow, systemPreferences, shell, dialog, Menu } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { basename } from 'path'
 import { parseDocumentFile } from './services/file-parser'
@@ -77,6 +77,36 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId(`com.sourcethread.${app.getName().toLowerCase().replace(/\s+/g, '-')}`)
   setRemoteViewProductName(app.getName())
   logAppInfo()
+
+  // Remove default menu in production (removes View > Toggle Developer Tools)
+  if (app.isPackaged) {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([
+      {
+        label: app.getName(),
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' }
+        ]
+      },
+      {
+        label: 'Edit',
+        submenu: [
+          { role: 'undo' },
+          { role: 'redo' },
+          { type: 'separator' },
+          { role: 'cut' },
+          { role: 'copy' },
+          { role: 'paste' },
+          { role: 'selectAll' }
+        ]
+      }
+    ]))
+  }
 
   // Recover from previous crash where BlackHole was left as system audio output
   recoverAudioFromCrash()

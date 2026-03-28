@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron'
+import { BrowserWindow, screen, app } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 
@@ -30,6 +30,16 @@ export function createOverlayWindow(): BrowserWindow {
 
   // Stay above fullscreen apps
   overlay.setAlwaysOnTop(true, 'screen-saver')
+
+  // Disable devtools in production
+  if (app.isPackaged) {
+    overlay.webContents.on('before-input-event', (_event, input) => {
+      if (input.key === 'F12' ||
+        (input.key === 'I' && input.shift && (input.control || input.meta))) {
+        _event.preventDefault()
+      }
+    })
+  }
 
   // Load renderer
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {

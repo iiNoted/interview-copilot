@@ -5,7 +5,7 @@ import { AISidebar } from './AISidebar'
 import { KnowledgePanel } from './KnowledgePanel'
 import { SettingsPanel } from './SettingsPanel'
 import { OnboardingBot } from './OnboardingBot'
-import { Minimize2, Maximize2, Settings, FileText, Paperclip, Mic, BookOpen, Briefcase } from 'lucide-react'
+import { Minimize2, Maximize2, Settings, FileText, Paperclip, Mic, BookOpen, Briefcase, Download, Loader2 } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import {
   DropdownMenu,
@@ -52,8 +52,10 @@ export function OverlayContainer(): React.JSX.Element {
   const [updateBlockedVersion, setUpdateBlockedVersion] = useState<string | null>(null)
   const [tosAccepted, setTosAccepted] = useState<boolean | null>(null) // null = loading
   const [tosScrolledToBottom, setTosScrolledToBottom] = useState(false)
+  const [updateStatus, setUpdateStatus] = useState<string>('idle')
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null)
 
-  // Check for forced update + ToS on mount
+  // Check for forced update + ToS on mount + track update status
   useEffect(() => {
     window.api.isUpdateBlocked?.().then((r) => {
       if (r?.blocked) {
@@ -64,11 +66,19 @@ export function OverlayContainer(): React.JSX.Element {
     window.api.getTermsAccepted().then((accepted) => {
       setTosAccepted(accepted)
     })
+    window.api.getUpdateStatus().then((s) => {
+      setUpdateStatus(s.status)
+      if (s.version) setUpdateVersion(s.version)
+    })
     const cleanupUpdate = window.api.onUpdateRequired?.((data) => {
       setUpdateBlocked(true)
       setUpdateBlockedVersion(data.version)
     })
-    return () => { cleanupUpdate?.() }
+    const cleanupStatus = window.api.onUpdateStatus((data) => {
+      setUpdateStatus(data.status)
+      if (data.version) setUpdateVersion(data.version)
+    })
+    return () => { cleanupUpdate?.(); cleanupStatus() }
   }, [])
 
   // Load persisted data on mount
@@ -256,6 +266,29 @@ export function OverlayContainer(): React.JSX.Element {
           className="flex items-center gap-1"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
+          {/* Update button — visible when update is ready or downloading */}
+          {updateStatus === 'ready' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-green-400 hover:text-green-300 relative"
+              onClick={() => window.api.installUpdate()}
+              title={`Install v${updateVersion}`}
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-400" />
+            </Button>
+          )}
+          {(updateStatus === 'checking' || updateStatus === 'downloading') && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-blue-400"
+              title={updateStatus === 'downloading' ? `Downloading v${updateVersion}...` : 'Checking for updates...'}
+            >
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
