@@ -87,7 +87,7 @@ jobs:
           publish:
             provider: github
             owner: iiNoted
-            repo: ${{ matrix.product.id }}
+            repo: interview-copilot
             releaseType: release
           CONF
 
@@ -182,7 +182,7 @@ jobs:
           publish:
             provider: github
             owner: iiNoted
-            repo: ${{ matrix.product.id }}
+            repo: interview-copilot
             releaseType: release
           CONF
 
@@ -266,7 +266,7 @@ jobs:
           publish:
             provider: github
             owner: iiNoted
-            repo: ${{ matrix.product.id }}
+            repo: interview-copilot
             releaseType: release
           CONF
 
@@ -301,6 +301,70 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f | sort
 
+      - name: Generate auto-update manifests
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+
+          # Windows: latest.yml (from copilot NSIS exe)
+          WIN_EXE=$(find artifacts -name "copilot-*-setup.exe" | head -1)
+          if [ -n "$WIN_EXE" ]; then
+            WIN_SHA=$(sha512sum "$WIN_EXE" | awk '{print $1}' | xxd -r -p | base64 -w0)
+            WIN_SIZE=$(stat -c%s "$WIN_EXE")
+            WIN_NAME=$(basename "$WIN_EXE")
+            cat > artifacts/latest.yml << EOF
+          version: ${VERSION}
+          files:
+            - url: ${WIN_NAME}
+              sha512: ${WIN_SHA}
+              size: ${WIN_SIZE}
+          path: ${WIN_NAME}
+          sha512: ${WIN_SHA}
+          releaseDate: '${DATE}'
+          EOF
+          fi
+
+          # macOS: latest-mac.yml (from copilot DMG)
+          MAC_DMG=$(find artifacts -name "copilot-*.dmg" | head -1)
+          if [ -n "$MAC_DMG" ]; then
+            MAC_SHA=$(sha512sum "$MAC_DMG" | awk '{print $1}' | xxd -r -p | base64 -w0)
+            MAC_SIZE=$(stat -c%s "$MAC_DMG")
+            MAC_NAME=$(basename "$MAC_DMG")
+            cat > artifacts/latest-mac.yml << EOF
+          version: ${VERSION}
+          files:
+            - url: ${MAC_NAME}
+              sha512: ${MAC_SHA}
+              size: ${MAC_SIZE}
+          path: ${MAC_NAME}
+          sha512: ${MAC_SHA}
+          releaseDate: '${DATE}'
+          EOF
+          fi
+
+          # Linux: latest-linux.yml (from copilot AppImage)
+          LIN_AI=$(find artifacts -name "copilot-*.AppImage" | head -1)
+          if [ -n "$LIN_AI" ]; then
+            LIN_SHA=$(sha512sum "$LIN_AI" | awk '{print $1}' | xxd -r -p | base64 -w0)
+            LIN_SIZE=$(stat -c%s "$LIN_AI")
+            LIN_NAME=$(basename "$LIN_AI")
+            cat > artifacts/latest-linux.yml << EOF
+          version: ${VERSION}
+          files:
+            - url: ${LIN_NAME}
+              sha512: ${LIN_SHA}
+              size: ${LIN_SIZE}
+          path: ${LIN_NAME}
+          sha512: ${LIN_SHA}
+          releaseDate: '${DATE}'
+          EOF
+          fi
+
+          echo "Generated update manifests:"
+          cat artifacts/latest.yml 2>/dev/null || true
+          cat artifacts/latest-mac.yml 2>/dev/null || true
+          cat artifacts/latest-linux.yml 2>/dev/null || true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -310,9 +374,11 @@ jobs:
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.exe
-            artifacts/**/*.appx
             artifacts/**/*.AppImage
             artifacts/**/*.deb
+            artifacts/latest.yml
+            artifacts/latest-mac.yml
+            artifacts/latest-linux.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
