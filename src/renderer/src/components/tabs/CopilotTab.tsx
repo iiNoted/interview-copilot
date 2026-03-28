@@ -1,5 +1,6 @@
 import { useOverlayStore } from '@renderer/stores/overlay-store'
 import { useT } from '@renderer/i18n/context'
+import { useProductTheme } from '../../App'
 import { TranscriptPanel } from '../overlay/TranscriptPanel'
 import { AISidebar } from '../overlay/AISidebar'
 import { KnowledgePanel } from '../overlay/KnowledgePanel'
@@ -25,6 +26,7 @@ const MODELS = [
 
 export function CopilotTab(): React.JSX.Element {
   const { t } = useT()
+  const theme = useProductTheme()
   const {
     showSettings,
     setShowSettings,
@@ -116,7 +118,7 @@ export function CopilotTab(): React.JSX.Element {
       {/* Copilot header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
         <span className="text-xs font-semibold text-white/50 tracking-wide">
-          {t('copilot.header')}
+          Live {theme.name}
         </span>
         <Button
           variant="ghost"

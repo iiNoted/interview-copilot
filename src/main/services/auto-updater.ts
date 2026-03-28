@@ -1,5 +1,5 @@
 import { autoUpdater } from 'electron-updater'
-import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 
 let updateStatus: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error' = 'idle'
 let updateVersion: string | null = null
@@ -11,8 +11,8 @@ export function isUpdateBlocked(): boolean {
 }
 
 export function setupAutoUpdater(mainWindow: BrowserWindow): void {
-  // Mac App Store builds use Apple's own update mechanism; disable electron-updater
-  if ((process as any).mas) return
+  // Mac App Store + Microsoft Store builds use platform update mechanisms; disable electron-updater
+  if ((process as any).mas || process.env.APPX_PACKAGE_ROOT) return
 
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
@@ -47,7 +47,7 @@ export function setupAutoUpdater(mainWindow: BrowserWindow): void {
       .showMessageBox(mainWindow, {
         type: 'info',
         title: 'Required Update',
-        message: `Interview Copilot v${info.version} is required.`,
+        message: `${app.getName()} v${info.version} is required.`,
         detail: 'The app will restart now to install the update.',
         buttons: ['Restart Now'],
         noLink: true

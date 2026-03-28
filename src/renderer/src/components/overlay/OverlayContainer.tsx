@@ -1,4 +1,5 @@
 import { useOverlayStore } from '@renderer/stores/overlay-store'
+import { useProductTheme } from '../../App'
 import { TranscriptPanel } from './TranscriptPanel'
 import { AISidebar } from './AISidebar'
 import { KnowledgePanel } from './KnowledgePanel'
@@ -41,6 +42,8 @@ export function OverlayContainer(): React.JSX.Element {
     clearJob
   } = useOverlayStore()
 
+  const theme = useProductTheme()
+  const appName = theme.name
   const [leftTab, setLeftTab] = useState<'transcript' | 'knowledge'>('transcript')
   const [updateBlocked, setUpdateBlocked] = useState(false)
   const [updateBlockedVersion, setUpdateBlockedVersion] = useState<string | null>(null)
@@ -175,7 +178,7 @@ export function OverlayContainer(): React.JSX.Element {
           <h1 className="text-xl font-bold text-white mb-2">Terms of Service</h1>
           <p className="text-white/40 text-xs mb-6">Please read and accept to continue</p>
           <div className="text-white/70 text-sm leading-relaxed space-y-3">
-            <p>By using Interview Copilot, you agree to these Terms of Service operated by SourceThread ("Company").</p>
+            <p>By using {appName}, you agree to these Terms of Service operated by SourceThread ("Company").</p>
             <p><strong className="text-white">Binding Arbitration:</strong> All disputes will be resolved through individual binding arbitration, not court litigation. You waive your right to participate in class actions.</p>
             <p><strong className="text-white">Disclaimer:</strong> The Service is provided "AS IS" without warranties. We do not guarantee interview success or career outcomes.</p>
             <p><strong className="text-white">Liability Cap:</strong> Our total liability is limited to the amount you paid in the preceding 12 months or $100, whichever is less.</p>
@@ -244,7 +247,7 @@ export function OverlayContainer(): React.JSX.Element {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <span className="text-xs font-semibold text-white/70 tracking-wide uppercase">
-          Interview Copilot
+          {appName}
         </span>
         <div
           className="flex items-center gap-1"

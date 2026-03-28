@@ -10,7 +10,8 @@ import {
   broadcastState,
   getRemoteViewStatus,
   generateAuthToken,
-  getLocalIpAddress
+  getLocalIpAddress,
+  setRemoteViewProductName
 } from './services/remote-view'
 import { saveTranscript, getTranscriptHistory, exportTranscript } from './services/transcript-store'
 import { getFlashcardProgress, rateFlashcard, resetFlashcardProgress, type SelfRating } from './services/flashcard-progress-store'
@@ -48,7 +49,8 @@ import { setupAutoUpdater } from './services/auto-updater'
 let mainWindow: BrowserWindow | null = null
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.sourcethread.interview-copilot')
+  electronApp.setAppUserModelId(`com.sourcethread.${app.getName().toLowerCase().replace(/\s+/g, '-')}`)
+  setRemoteViewProductName(app.getName())
   logAppInfo()
 
   // Recover from previous crash where BlackHole was left as system audio output
@@ -311,7 +313,7 @@ app.whenReady().then(() => {
     await openCustomerPortal()
   })
 
-  // Flat subscription ($0.99/month)
+  // Flat subscription ($5/month Standard)
   ipcMain.handle('billing:create-flat-checkout', async (_event, email: string) => {
     return await createFlatCheckoutSession(email)
   })

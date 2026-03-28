@@ -10,10 +10,21 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # macOS — DMG (arm64), unsigned if no signing secrets
+  # Build all 8 branded products on each platform
   # ---------------------------------------------------------------------------
   build-mac:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        product:
+          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot" }
+          - { id: hireready, name: "HireReady", appId: "com.sourcethread.hireready" }
+          - { id: techscreen, name: "TechScreen", appId: "com.sourcethread.techscreen" }
+          - { id: datahire, name: "DataHire", appId: "com.sourcethread.datahire" }
+          - { id: cloudprep, name: "CloudPrep", appId: "com.sourcethread.cloudprep" }
+          - { id: interviewghost, name: "InterviewGhost", appId: "com.sourcethread.interviewghost" }
+          - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews" }
+          - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck" }
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: false
     steps:
@@ -32,25 +43,83 @@ jobs:
       - name: Create empty extraResources dirs
         run: mkdir -p pipeline-data models
 
+      - name: Generate product config
+        run: |
+          cat > electron-builder.product.yml << 'CONF'
+          appId: ${{ matrix.product.appId }}
+          productName: "${{ matrix.product.name }}"
+          copyright: "Copyright © 2026 SourceThread"
+          directories:
+            buildResources: build
+          files:
+            - '!**/.vscode/*'
+            - '!src/*'
+            - '!electron.vite.config.{js,ts,mjs,cjs}'
+            - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+            - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+            - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+          asarUnpack:
+            - resources/**
+          extraResources:
+            - from: "pipeline-data/"
+              to: "pipeline-data"
+              filter:
+                - "*/articles/*.md"
+                - "*/skill/skill_scaffold.json"
+            - from: "models/"
+              to: "models"
+              filter:
+                - "*.bin"
+          mac:
+            target:
+              - target: dmg
+                arch:
+                  - arm64
+            entitlements: build/entitlements.mac.plist
+            entitlementsInherit: build/entitlements.mac.plist
+            extendInfo:
+              - NSMicrophoneUsageDescription: "${{ matrix.product.name }} needs microphone access for real-time interview transcription."
+              - LSUIElement: false
+            notarize: false
+          dmg:
+            artifactName: ${{ matrix.product.id }}-${version}.${ext}
+          npmRebuild: false
+          publish:
+            provider: github
+            owner: iiNoted
+            repo: ${{ matrix.product.id }}
+            releaseType: release
+          CONF
+
       - name: Build & package DMG (arm64)
-        run: npx electron-vite build && npx electron-builder --mac dmg --arm64 --publish never
+        run: npx electron-vite build && npx electron-builder --config electron-builder.product.yml --mac dmg --arm64 --publish never
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac-dmg
+          name: mac-${{ matrix.product.id }}
           path: |
             dist/*.dmg
             dist/*.dmg.blockmap
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------------
-  # Windows — NSIS installer with optional code signing
-  # ---------------------------------------------------------------------------
   build-win:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        product:
+          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot", identity: "SourceThread.InterviewCopilot" }
+          - { id: hireready, name: "HireReady", appId: "com.sourcethread.hireready", identity: "SourceThread.HireReady" }
+          - { id: techscreen, name: "TechScreen", appId: "com.sourcethread.techscreen", identity: "SourceThread.TechScreen" }
+          - { id: datahire, name: "DataHire", appId: "com.sourcethread.datahire", identity: "SourceThread.DataHire" }
+          - { id: cloudprep, name: "CloudPrep", appId: "com.sourcethread.cloudprep", identity: "SourceThread.CloudPrep" }
+          - { id: interviewghost, name: "InterviewGhost", appId: "com.sourcethread.interviewghost", identity: "SourceThread.InterviewGhost" }
+          - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews", identity: "SourceThread.SAPInterviews" }
+          - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck", identity: "SourceThread.PrepDeck" }
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: false
+      # Use signing cert when available, otherwise build unsigned
+      CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,23 +139,89 @@ jobs:
           if not exist models mkdir models
         shell: cmd
 
+      - name: Generate product config
+        shell: bash
+        run: |
+          cat > electron-builder.product.yml << 'CONF'
+          appId: ${{ matrix.product.appId }}
+          productName: "${{ matrix.product.name }}"
+          copyright: "Copyright © 2026 SourceThread"
+          directories:
+            buildResources: build
+          files:
+            - '!**/.vscode/*'
+            - '!src/*'
+            - '!electron.vite.config.{js,ts,mjs,cjs}'
+            - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+            - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+            - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+          asarUnpack:
+            - resources/**
+          extraResources:
+            - from: "pipeline-data/"
+              to: "pipeline-data"
+              filter:
+                - "*/articles/*.md"
+                - "*/skill/skill_scaffold.json"
+            - from: "models/"
+              to: "models"
+              filter:
+                - "*.bin"
+          win:
+            executableName: ${{ matrix.product.id }}
+            signingHashAlgorithms: [sha256]
+            target:
+              - target: nsis
+                arch: [x64]
+              - target: appx
+                arch: [x64]
+          nsis:
+            artifactName: ${{ matrix.product.id }}-${version}-setup.${ext}
+            shortcutName: "${{ matrix.product.name }}"
+            uninstallDisplayName: "${{ matrix.product.name }}"
+            createDesktopShortcut: always
+          appx:
+            publisherDisplayName: "Source Thread LLC"
+            publisher: "CN=0CDA11DF-D1DB-4A54-9BA0-432EED1E0924"
+            identityName: "${{ matrix.product.identity }}"
+            applicationId: "${{ matrix.product.id }}"
+            languages: ["en-US"]
+            capabilities: microphone internetClient internetClientServer
+            artifactName: ${{ matrix.product.id }}-${version}.${ext}
+          npmRebuild: false
+          publish:
+            provider: github
+            owner: iiNoted
+            repo: ${{ matrix.product.id }}
+            releaseType: release
+          CONF
+
       - name: Build & package Windows installer
-        run: npm run build && npx electron-builder --win --publish never
+        run: npm run build && npx electron-builder --config electron-builder.product.yml --win --publish never
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: win-installer
+          name: win-${{ matrix.product.id }}
           path: |
             dist/*.exe
             dist/*.exe.blockmap
+            dist/*.appx
           if-no-files-found: error
 
-  # ---------------------------------------------------------------------------
-  # Linux — AppImage + deb
-  # ---------------------------------------------------------------------------
   build-linux:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        product:
+          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot" }
+          - { id: hireready, name: "HireReady", appId: "com.sourcethread.hireready" }
+          - { id: techscreen, name: "TechScreen", appId: "com.sourcethread.techscreen" }
+          - { id: datahire, name: "DataHire", appId: "com.sourcethread.datahire" }
+          - { id: cloudprep, name: "CloudPrep", appId: "com.sourcethread.cloudprep" }
+          - { id: interviewghost, name: "InterviewGhost", appId: "com.sourcethread.interviewghost" }
+          - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews" }
+          - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck" }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -103,17 +238,59 @@ jobs:
       - name: Create empty extraResources dirs
         run: mkdir -p pipeline-data models
 
+      - name: Generate product config
+        run: |
+          cat > electron-builder.product.yml << 'CONF'
+          appId: ${{ matrix.product.appId }}
+          productName: "${{ matrix.product.name }}"
+          copyright: "Copyright © 2026 SourceThread"
+          directories:
+            buildResources: build
+          files:
+            - '!**/.vscode/*'
+            - '!src/*'
+            - '!electron.vite.config.{js,ts,mjs,cjs}'
+            - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+            - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+            - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+          asarUnpack:
+            - resources/**
+          extraResources:
+            - from: "pipeline-data/"
+              to: "pipeline-data"
+              filter:
+                - "*/articles/*.md"
+                - "*/skill/skill_scaffold.json"
+            - from: "models/"
+              to: "models"
+              filter:
+                - "*.bin"
+          linux:
+            target:
+              - AppImage
+              - deb
+            maintainer: sourcethread.com
+            category: Utility
+          appImage:
+            artifactName: ${{ matrix.product.id }}-${version}.${ext}
+          npmRebuild: false
+          publish:
+            provider: github
+            owner: iiNoted
+            repo: ${{ matrix.product.id }}
+            releaseType: release
+          CONF
+
       - name: Build & package Linux
-        run: npm run build && npx electron-builder --linux --publish never
+        run: npm run build && npx electron-builder --config electron-builder.product.yml --linux --publish never
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: linux-packages
+          name: linux-${{ matrix.product.id }}
           path: |
             dist/*.AppImage
             dist/*.deb
-            dist/*.snap
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
@@ -142,10 +319,60 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-rc') }}
           generate_release_notes: true
           files: |
-            artifacts/mac-dmg/*.dmg
-            artifacts/win-installer/*.exe
-            artifacts/linux-packages/*.AppImage
-            artifacts/linux-packages/*.deb
-            artifacts/linux-packages/*.snap
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+            artifacts/**/*.appx
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Publish AppX packages to Microsoft Store (bypasses SmartScreen)
+  # ---------------------------------------------------------------------------
+  publish-store:
+    runs-on: windows-latest
+    needs: [build-win]
+    if: needs.build-win.result == 'success' && !contains(github.ref_name, '-alpha')
+    strategy:
+      fail-fast: false
+      matrix:
+        product:
+          - { id: copilot, storeId: "PLACEHOLDER_COPILOT" }
+          - { id: hireready, storeId: "PLACEHOLDER_HIREREADY" }
+          - { id: techscreen, storeId: "PLACEHOLDER_TECHSCREEN" }
+          - { id: datahire, storeId: "PLACEHOLDER_DATAHIRE" }
+          - { id: cloudprep, storeId: "PLACEHOLDER_CLOUDPREP" }
+          - { id: interviewghost, storeId: "PLACEHOLDER_INTERVIEWGHOST" }
+          - { id: sapinterviews, storeId: "PLACEHOLDER_SAPINTERVIEWS" }
+          - { id: prepdeck, storeId: "PLACEHOLDER_PREPDECK" }
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: win-${{ matrix.product.id }}
+          path: artifacts
+
+      - name: List AppX files
+        run: Get-ChildItem -Recurse artifacts/*.appx
+
+      - name: Setup Microsoft Store Developer CLI
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Configure Store credentials
+        run: |
+          msstore reconfigure `
+            --tenantId ${{ secrets.AZURE_AD_TENANT_ID }} `
+            --sellerId ${{ secrets.MS_SELLER_ID }} `
+            --clientId ${{ secrets.AZURE_AD_CLIENT_ID }} `
+            --clientSecret ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+
+      - name: Publish ${{ matrix.product.id }} to Microsoft Store
+        run: |
+          $appx = Get-ChildItem -Recurse artifacts/*.appx | Select-Object -First 1
+          Write-Host "Publishing $($appx.FullName) to Store ID ${{ matrix.product.storeId }}"
+          msstore publish $appx.FullName -id ${{ matrix.product.storeId }}
+
+      - name: Check submission status
+        run: msstore submission status ${{ matrix.product.storeId }}
+        continue-on-error: true

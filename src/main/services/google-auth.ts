@@ -1,4 +1,4 @@
-import { BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import { createServer, type Server } from 'http'
 import { setAuthUser, type AuthUser } from './auth-store'
 
@@ -59,7 +59,7 @@ export function startGoogleAuth(_parentWindow: BrowserWindow): Promise<AuthUser>
           setAuthUser(user)
           resolved = true
           res.writeHead(200, { 'Content-Type': 'text/html' })
-          res.end('<html><body style="background:#0a0a1a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui"><div style="text-align:center"><h2>Signed in successfully!</h2><p>You can close this tab and return to Interview Copilot.</p></div></body></html>')
+          res.end(`<html><body style="background:#0a0a1a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui"><div style="text-align:center"><h2>Signed in successfully!</h2><p>You can close this tab and return to ${app.getName()}.</p></div></body></html>`)
           cleanup()
           resolve(user)
         } else {

@@ -7,7 +7,7 @@ set -e
 
 # Product definitions: id|name|appId|emoji
 PRODUCTS=(
-  "interview-copilot|Interview Copilot|com.sourcethread.interview-copilot|🎙️"
+  "copilot|Interview Copilot|com.sourcethread.interview-copilot|🎙️"
   "hireready|HireReady|com.sourcethread.hireready|🔥"
   "techscreen|TechScreen|com.sourcethread.techscreen|⚡"
   "datahire|DataHire|com.sourcethread.datahire|📊"
@@ -93,16 +93,28 @@ publish:
   releaseType: release
 EOF
 
-  # Build with the product-specific config
+  # Build Mac DMG + Windows NSIS installer
+  echo "  → Building macOS DMG..."
   npx electron-builder --config electron-builder.product.yml --mac dmg 2>&1 | tail -5
+  echo "  → Building Windows installer..."
+  npx electron-builder --config electron-builder.product.yml --win nsis 2>&1 | tail -5
 
-  # Copy DMG to dist-products with product name
+  # Copy DMG to dist-products
   local dmg=$(ls -t dist/*.dmg 2>/dev/null | head -1)
   if [ -n "$dmg" ]; then
     cp "$dmg" "$DIST_DIR/${id}-1.0.0.dmg"
-    echo "✓ $name → $DIST_DIR/${id}-1.0.0.dmg"
+    echo "✓ $name Mac → $DIST_DIR/${id}-1.0.0.dmg"
   else
     echo "✗ No DMG found for $name"
+  fi
+
+  # Copy Windows EXE to dist-products
+  local exe=$(ls -t dist/*-setup.exe 2>/dev/null | head -1)
+  if [ -n "$exe" ]; then
+    cp "$exe" "$DIST_DIR/${id}-1.0.0-setup.exe"
+    echo "✓ $name Win → $DIST_DIR/${id}-1.0.0-setup.exe"
+  else
+    echo "✗ No EXE found for $name"
   fi
 
   # Cleanup
@@ -115,7 +127,7 @@ if [ "$TARGET" = "all" ]; then
     build_product "$product"
   done
   echo "━━━ All products built ━━━"
-  ls -lh "$DIST_DIR"/*.dmg 2>/dev/null
+  ls -lh "$DIST_DIR"/*.dmg "$DIST_DIR"/*-setup.exe 2>/dev/null
 else
   for product in "${PRODUCTS[@]}"; do
     IFS='|' read -r id _ _ _ <<< "$product"
@@ -125,6 +137,6 @@ else
     fi
   done
   echo "Unknown product: $TARGET"
-  echo "Available: interview-copilot, hireready, techscreen, datahire, cloudprep, interviewghost, sapinterviews, prepdeck"
+  echo "Available: copilot, hireready, techscreen, datahire, cloudprep, interviewghost, sapinterviews, prepdeck"
   exit 1
 fi

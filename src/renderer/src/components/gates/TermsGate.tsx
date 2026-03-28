@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useProductTheme } from '../../App'
 
 const TERMS_VERSION = '1.0'
 
@@ -7,6 +8,8 @@ interface TermsGateProps {
 }
 
 export function TermsGate({ children }: TermsGateProps): React.JSX.Element {
+  const theme = useProductTheme()
+  const appName = theme.name
   const [accepted, setAccepted] = useState<boolean | null>(null)
   const [scrolledToBottom, setScrolledToBottom] = useState(false)
 
@@ -42,11 +45,11 @@ export function TermsGate({ children }: TermsGateProps): React.JSX.Element {
           style={{ maxHeight: '50vh' }}
           onScroll={handleScroll}
         >
-          <p className="text-white/90 font-medium">Please read these terms carefully before using Interview Copilot.</p>
+          <p className="text-white/90 font-medium">Please read these terms carefully before using {appName}.</p>
 
           <section>
             <h2 className="text-white/80 font-semibold mb-1">1. Acceptance of Terms</h2>
-            <p>By installing, accessing, or using Interview Copilot ("the Software"), you agree to be bound by these Terms of Service ("Terms") and our Privacy Policy. If you do not agree, you must immediately uninstall the Software and cease all use. These Terms constitute a legally binding agreement between you ("User") and SourceThread ("Company", "we", "us").</p>
+            <p>By installing, accessing, or using {appName} ("the Software"), you agree to be bound by these Terms of Service ("Terms") and our Privacy Policy. If you do not agree, you must immediately uninstall the Software and cease all use. These Terms constitute a legally binding agreement between you ("User") and SourceThread ("Company", "we", "us").</p>
           </section>
 
           <section>
@@ -56,7 +59,7 @@ export function TermsGate({ children }: TermsGateProps): React.JSX.Element {
 
           <section>
             <h2 className="text-white/80 font-semibold mb-1">3. Intellectual Property</h2>
-            <p>All content, articles, knowledge base materials, algorithms, prompts, coaching logic, UI designs, and software code within Interview Copilot are the exclusive property of SourceThread and are protected by copyright, trade secret, and other intellectual property laws. The knowledge base articles, qualification data, coaching prompts, and AI response templates are proprietary trade secrets. Unauthorized reproduction, distribution, or use of any content constitutes infringement and may result in civil and criminal penalties.</p>
+            <p>All content, articles, knowledge base materials, algorithms, prompts, coaching logic, UI designs, and software code within {appName} are the exclusive property of SourceThread and are protected by copyright, trade secret, and other intellectual property laws. The knowledge base articles, qualification data, coaching prompts, and AI response templates are proprietary trade secrets. Unauthorized reproduction, distribution, or use of any content constitutes infringement and may result in civil and criminal penalties.</p>
           </section>
 
           <section>

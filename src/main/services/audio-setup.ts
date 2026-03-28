@@ -2,6 +2,7 @@ import { execSync, spawn, ChildProcess } from 'child_process'
 import { existsSync, writeFileSync, readFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
+import { app } from 'electron'
 
 export interface AudioSetupStatus {
   platform: 'darwin' | 'win32' | 'linux'
@@ -27,18 +28,21 @@ let mirrorProc: ChildProcess | null = null
 let originalOutput: string | null = null
 
 // Persist the original audio device to a temp file so it survives crashes
-const ORIGINAL_OUTPUT_FILE = join(tmpdir(), 'interview-copilot-original-audio-output.txt')
+function getOriginalOutputFile(): string {
+  const slug = app.getName().toLowerCase().replace(/\s+/g, '-')
+  return join(tmpdir(), `${slug}-original-audio-output.txt`)
+}
 
 function persistOriginalOutput(deviceName: string): void {
   try {
-    writeFileSync(ORIGINAL_OUTPUT_FILE, deviceName, 'utf-8')
+    writeFileSync(getOriginalOutputFile(), deviceName, 'utf-8')
   } catch { /* ignore */ }
 }
 
 function loadPersistedOriginalOutput(): string | null {
   try {
-    if (existsSync(ORIGINAL_OUTPUT_FILE)) {
-      return readFileSync(ORIGINAL_OUTPUT_FILE, 'utf-8').trim() || null
+    if (existsSync(getOriginalOutputFile())) {
+      return readFileSync(getOriginalOutputFile(), 'utf-8').trim() || null
     }
   } catch { /* ignore */ }
   return null
@@ -46,8 +50,8 @@ function loadPersistedOriginalOutput(): string | null {
 
 function clearPersistedOriginalOutput(): void {
   try {
-    if (existsSync(ORIGINAL_OUTPUT_FILE)) {
-      unlinkSync(ORIGINAL_OUTPUT_FILE)
+    if (existsSync(getOriginalOutputFile())) {
+      unlinkSync(getOriginalOutputFile())
     }
   } catch { /* ignore */ }
 }

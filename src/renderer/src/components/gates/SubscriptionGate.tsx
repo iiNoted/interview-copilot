@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { CreditCard, Loader2, CheckCircle, Shield, LogOut } from 'lucide-react'
 import { useT } from '@renderer/i18n/context'
+import { useProductTheme } from '../../App'
 
 interface SubscriptionGateProps {
   children: ReactNode
@@ -17,6 +18,8 @@ interface AuthUser {
 
 export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX.Element {
   const { t } = useT()
+  const theme = useProductTheme()
+  const appName = theme.name
   const [step, setStep] = useState<GateStep>('loading')
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -66,7 +69,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
       setCurrentUser(user)
 
       // Owner bypass — skip subscription + provisioning entirely
-      const ownerEmails = ['2ezrastone1@gmail.com', 'siramir097@gmail.com', 'ridamaryam@gmail.com']
+      const ownerEmails = ['2ezrastone1@gmail.com', '2ezrastone2@gmail.com', 'siramir097@gmail.com', 'ridamaryam@gmail.com']
       if (ownerEmails.includes(user.email.toLowerCase())) {
         setStep('ready')
         return
@@ -216,7 +219,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-primary)]/10 mb-4" style={{ background: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
               <Shield className="h-8 w-8 text-[var(--color-primary)]" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">{t('gate.login.heading')}</h1>
+            <h1 className="text-2xl font-bold mb-2">{appName}</h1>
             <p className="text-white/50 text-sm">
               {t('gate.login.subtitle')}
             </p>
@@ -289,7 +292,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style={{ background: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}>
             <Shield className="h-8 w-8 text-[var(--color-primary)]" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">{t('gate.paywall.heading')}</h1>
+          <h1 className="text-2xl font-bold mb-2">{appName} Standard</h1>
           <p className="text-white/50 text-sm">
             {t('gate.paywall.subtitle')}
           </p>

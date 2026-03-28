@@ -26,11 +26,26 @@ extraResources:
       - "*.bin"
 win:
   executableName: interview-copilot
+  cscLink: build/win-cert.pfx
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: appx
+      arch: [x64]
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+appx:
+  publisherDisplayName: "Source Thread LLC"
+  # publisher CN= must match the Microsoft Partner Center Windows publisher ID
+  publisher: "CN=0CDA11DF-D1DB-4A54-9BA0-432EED1E0924"
+  identityName: "SourceThread.InterviewCopilot"
+  applicationId: "InterviewCopilot"
+  languages: ["en-US"]
+  capabilities: ["microphone", "internetClient", "internetClientServer"]
+  artifactName: ${name}-${version}.${ext}
 mac:
   target:
     - target: dmg

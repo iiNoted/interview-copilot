@@ -7,3 +7,5 @@ out/
 pipeline-data/
 models/
 build/embedded.provisionprofile
+build/*.pfx
+build/*.p12

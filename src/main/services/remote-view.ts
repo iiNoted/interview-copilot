@@ -57,6 +57,12 @@ export function getLocalIpAddress(): string {
   return '127.0.0.1'
 }
 
+let productName = 'Interview Copilot'
+
+export function setRemoteViewProductName(name: string): void {
+  productName = name
+}
+
 export function startRemoteViewServer(port: number, token: string): { url: string } {
   if (httpServer) stopRemoteViewServer()
 
@@ -189,7 +195,7 @@ function getClientHtml(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Interview Copilot</title>
+<title>${productName}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#121620;color:rgba(255,255,255,.85);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
@@ -226,13 +232,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </head>
 <body>
 <div class="header">
-  <h1>Interview Copilot</h1>
+  <h1>${productName}</h1>
   <div class="status">
     <span id="st" class="status-text">Connecting...</span>
     <div id="sd" class="dot off"></div>
   </div>
 </div>
-<div id="c"><div class="empty"><p>Connecting to Interview Copilot...</p></div></div>
+<div id="c"><div class="empty"><p>Connecting to ${productName}...</p></div></div>
 <div class="meta"><span id="mm"></span><span id="md"></span></div>
 <script>
 var P=new URLSearchParams(location.search),T=P.get('token');

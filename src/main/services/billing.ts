@@ -32,7 +32,7 @@ interface BillingState {
   unpaidCredits: number
 }
 
-// Flat subscription ($0.99/month) — managed server-side
+// Flat subscription ($5/month Standard) — managed server-side
 interface FlatBillingState {
   email: string | null
   customerId: string | null
@@ -262,7 +262,7 @@ export function updateBillingConfig(config: Partial<BillingConfig>): void {
   stripe = null
 }
 
-// ── Flat subscription ($0.99/month) ──────────────────────────────
+// ── Flat subscription ($5/month Standard) ──────────────────────────────
 // Server-managed: server creates checkout sessions and handles webhooks.
 // Desktop just polls for status.
 
@@ -352,7 +352,7 @@ export function getFlatBillingState(): {
 
 // Fresh server check — used by SubscriptionGate to avoid stale cached state
 // Owner emails bypass subscription check
-const OWNER_EMAILS = ['2ezrastone1@gmail.com', 'siramir097@gmail.com', 'ridamaryam@gmail.com']
+const OWNER_EMAILS = ['2ezrastone1@gmail.com', '2ezrastone2@gmail.com', 'siramir097@gmail.com', 'ridamaryam@gmail.com']
 
 export async function checkFlatBillingFresh(email: string): Promise<boolean> {
   // Owner bypass — always active
