@@ -8,14 +8,18 @@ import {
   Search, RotateCcw, ChevronRight, ChevronLeft,
   Binary, Network, Globe, Server, Database, Cloud,
   Blocks, FileCode2, Code2, Coffee, Shield,
-  Brain, Zap, Anchor, Filter, Share2, Wifi, Terminal, Cog, Smartphone, GitBranch
+  Brain, Zap, Anchor, Filter, Share2, Wifi, Terminal, Cog, Smartphone, GitBranch,
+  Layers, Box, Rocket, Puzzle, Package, RefreshCw, Activity, Lightbulb,
+  HardDrive, Target, Cpu, Diamond, Compass, Link, Hash, Lock, Flame, Repeat, Gauge, Award
 } from 'lucide-react'
 
 // Map icon string names from JSON to actual Lucide components
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Binary, Network, Globe, Server, Database, Cloud, Shield,
   Blocks, FileCode2, Code2, Coffee,
-  Brain, Zap, Anchor, Filter, Share2, Wifi, Terminal, Cog, Smartphone, GitBranch
+  Brain, Zap, Anchor, Filter, Share2, Wifi, Terminal, Cog, Smartphone, GitBranch,
+  Layers, Box, Rocket, Puzzle, Package, RefreshCw, Activity, Lightbulb,
+  HardDrive, Target, Cpu, Diamond, Compass, Link, Hash, Lock, Flame, Repeat, Gauge, Award
 }
 
 // Tailwind color map for category accent colors

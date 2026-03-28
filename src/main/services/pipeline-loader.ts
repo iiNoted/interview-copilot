@@ -23,7 +23,13 @@ const KNOWN_CATEGORIES = [
   'web-dev', 'pm-interviews',
   'machine-learning', 'react-typescript', 'data-engineering',
   'distributed-systems', 'networking', 'operating-systems',
-  'go-rust', 'mobile-dev', 'graphql'
+  'go-rust', 'mobile-dev', 'graphql',
+  'aws-cloud', 'azure-cloud', 'spring-boot', 'microservices',
+  'node-backend', 'cicd-pipelines', 'sre-observability', 'ai-engineering',
+  'database-internals', 'testing-qa', 'cpp-systems', 'dotnet-csharp',
+  'cloud-architecture', 'api-design', 'typescript-advanced', 'system-security',
+  'data-structures-advanced', 'concurrency-parallelism', 'sql-performance',
+  'behavioral-star'
 ]
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -70,7 +76,27 @@ const DISPLAY_NAMES: Record<string, string> = {
   'operating-systems': 'Operating Systems & Linux',
   'go-rust': 'Go & Rust',
   'mobile-dev': 'Mobile Development',
-  'graphql': 'GraphQL & APIs'
+  'graphql': 'GraphQL & APIs',
+  'aws-cloud': 'AWS Cloud & Services',
+  'azure-cloud': 'Azure Cloud & Services',
+  'spring-boot': 'Spring Boot & Enterprise Java',
+  'microservices': 'Microservices Architecture',
+  'node-backend': 'Node.js Backend',
+  'cicd-pipelines': 'CI/CD & Build Pipelines',
+  'sre-observability': 'SRE & Observability',
+  'ai-engineering': 'AI & LLM Engineering',
+  'database-internals': 'Database Internals & Optimization',
+  'testing-qa': 'Testing & QA Engineering',
+  'cpp-systems': 'C++ & Systems Programming',
+  'dotnet-csharp': '.NET & C#',
+  'cloud-architecture': 'Cloud Architecture & Serverless',
+  'api-design': 'API Design & Architecture',
+  'typescript-advanced': 'TypeScript Advanced',
+  'system-security': 'Application Security & OWASP',
+  'data-structures-advanced': 'Advanced Data Structures',
+  'concurrency-parallelism': 'Concurrency & Parallelism',
+  'sql-performance': 'SQL Performance & Optimization',
+  'behavioral-star': 'Behavioral & STAR Method'
 }
 
 export interface ArticleSummary {
@@ -392,7 +418,27 @@ export function rankCategoriesByContext(
     'operating-systems': ['operating systems', 'Linux', 'kernel', 'process', 'thread', 'memory management', 'filesystem', 'systemd', 'cgroups'],
     'go-rust': ['golang', 'go lang', 'rust', 'goroutine', 'ownership', 'borrowing', 'tokio', 'cargo'],
     'mobile-dev': ['iOS', 'android', 'swift', 'kotlin', 'react native', 'flutter', 'mobile development', 'SwiftUI', 'Jetpack Compose'],
-    'graphql': ['graphql', 'apollo', 'schema', 'resolver', 'mutation', 'subscription', 'federation', 'hasura']
+    'graphql': ['graphql', 'apollo', 'schema', 'resolver', 'mutation', 'subscription', 'federation', 'hasura'],
+    'aws-cloud': ['aws', 'amazon web services', 'ec2', 'lambda', 's3', 'iam', 'vpc', 'dynamodb', 'cloudformation', 'cdk', 'sqs', 'sns'],
+    'azure-cloud': ['azure', 'microsoft azure', 'azure functions', 'cosmos db', 'entra id', 'azure ad', 'aks', 'bicep', 'arm template'],
+    'spring-boot': ['spring boot', 'spring framework', 'spring security', 'jpa', 'hibernate', 'java enterprise', 'spring cloud'],
+    'microservices': ['microservices', 'service mesh', 'saga pattern', 'cqrs', 'event sourcing', 'api gateway', 'circuit breaker'],
+    'node-backend': ['node.js', 'nodejs', 'express', 'fastify', 'nestjs', 'event loop', 'npm'],
+    'cicd-pipelines': ['ci/cd', 'github actions', 'jenkins', 'gitlab ci', 'argocd', 'gitops', 'deployment pipeline'],
+    'sre-observability': ['sre', 'site reliability', 'observability', 'prometheus', 'grafana', 'opentelemetry', 'slo', 'sli'],
+    'ai-engineering': ['llm', 'large language model', 'prompt engineering', 'rag', 'retrieval augmented', 'fine-tuning', 'embeddings', 'vector database', 'ai agent'],
+    'database-internals': ['database internals', 'query optimization', 'mvcc', 'b-tree', 'indexing strategy', 'replication', 'sharding', 'postgresql internals'],
+    'testing-qa': ['testing', 'tdd', 'test driven', 'playwright', 'cypress', 'jest', 'unit test', 'integration test', 'e2e test'],
+    'cpp-systems': ['c++', 'cpp', 'raii', 'smart pointer', 'stl', 'cmake', 'modern c++', 'templates'],
+    'dotnet-csharp': ['.net', 'dotnet', 'c#', 'csharp', 'asp.net', 'entity framework', 'blazor', 'linq'],
+    'cloud-architecture': ['cloud architecture', 'serverless', 'multi-cloud', 'well-architected', 'finops', 'disaster recovery', 'data mesh'],
+    'api-design': ['api design', 'rest api', 'grpc', 'protobuf', 'openapi', 'swagger', 'api versioning', 'rate limiting'],
+    'typescript-advanced': ['typescript', 'type system', 'generics', 'conditional types', 'mapped types', 'branded types', 'zod'],
+    'system-security': ['application security', 'owasp', 'sql injection', 'xss', 'csrf', 'threat modeling', 'secure coding', 'penetration test'],
+    'data-structures-advanced': ['trie', 'segment tree', 'bloom filter', 'skip list', 'suffix array', 'fenwick tree', 'advanced algorithms'],
+    'concurrency-parallelism': ['concurrency', 'parallelism', 'mutex', 'semaphore', 'atomic', 'lock-free', 'thread pool', 'async programming'],
+    'sql-performance': ['sql optimization', 'query plan', 'explain analyze', 'window functions', 'index optimization', 'cte', 'query tuning'],
+    'behavioral-star': ['behavioral interview', 'star method', 'tell me about a time', 'conflict resolution', 'leadership example', 'teamwork']
   }
 
   const resumeLower = (resumeText || '').toLowerCase()
@@ -484,7 +530,27 @@ export function getResumeDataPack(targetTitle: string, resumeText: string | null
     'operating-systems': ['systems engineer', 'Linux administrator', 'site reliability', 'SRE', 'systems programmer', 'kernel'],
     'go-rust': ['go developer', 'golang', 'rust developer', 'systems programmer', 'backend engineer'],
     'mobile-dev': ['mobile developer', 'iOS developer', 'android developer', 'mobile engineer', 'flutter', 'react native'],
-    'graphql': ['graphql', 'API engineer', 'full stack', 'backend developer', 'apollo', 'API developer']
+    'graphql': ['graphql', 'API engineer', 'full stack', 'backend developer', 'apollo', 'API developer'],
+    'aws-cloud': ['aws', 'cloud engineer', 'solutions architect', 'devops', 'cloud architect', 'aws certified'],
+    'azure-cloud': ['azure', 'cloud engineer', 'azure architect', 'microsoft certified', 'azure devops'],
+    'spring-boot': ['spring', 'java developer', 'java engineer', 'backend java', 'enterprise java', 'spring boot'],
+    'microservices': ['microservices', 'software architect', 'backend architect', 'distributed systems', 'system architect'],
+    'node-backend': ['node.js', 'nodejs', 'backend engineer', 'javascript developer', 'full stack'],
+    'cicd-pipelines': ['devops', 'platform engineer', 'build engineer', 'release engineer', 'ci/cd', 'infrastructure'],
+    'sre-observability': ['sre', 'site reliability', 'observability', 'platform engineer', 'production engineer', 'devops'],
+    'ai-engineering': ['ai engineer', 'llm engineer', 'ml engineer', 'prompt engineer', 'applied ai', 'generative ai'],
+    'database-internals': ['database engineer', 'dba', 'database administrator', 'backend engineer', 'data platform'],
+    'testing-qa': ['qa engineer', 'sdet', 'test engineer', 'quality assurance', 'automation engineer', 'test architect'],
+    'cpp-systems': ['c++ developer', 'systems programmer', 'embedded engineer', 'performance engineer', 'c++ engineer'],
+    'dotnet-csharp': ['.net developer', 'c# developer', 'dotnet engineer', 'asp.net', 'full stack .net'],
+    'cloud-architecture': ['cloud architect', 'solutions architect', 'infrastructure architect', 'technical architect'],
+    'api-design': ['api engineer', 'api architect', 'backend developer', 'platform engineer', 'api developer'],
+    'typescript-advanced': ['typescript', 'frontend engineer', 'senior frontend', 'full stack developer', 'ui engineer'],
+    'system-security': ['security engineer', 'application security', 'appsec', 'security developer', 'secure coding'],
+    'data-structures-advanced': ['software engineer', 'competitive programming', 'algorithms', 'senior engineer'],
+    'concurrency-parallelism': ['systems engineer', 'backend engineer', 'performance engineer', 'platform engineer'],
+    'sql-performance': ['database developer', 'sql developer', 'data engineer', 'backend developer', 'dba'],
+    'behavioral-star': ['any role', 'software engineer', 'engineering manager', 'product manager', 'team lead']
   }
 
   // Score each category against the job title + resume
@@ -629,7 +695,27 @@ export function rankCategoriesByResume(
     'operating-systems': ['operating systems', 'Linux', 'kernel', 'process', 'thread', 'memory management', 'filesystem', 'systemd', 'cgroups'],
     'go-rust': ['golang', 'go lang', 'rust', 'goroutine', 'ownership', 'borrowing', 'tokio', 'cargo'],
     'mobile-dev': ['iOS', 'android', 'swift', 'kotlin', 'react native', 'flutter', 'mobile development', 'SwiftUI', 'Jetpack Compose'],
-    'graphql': ['graphql', 'apollo', 'schema', 'resolver', 'mutation', 'subscription', 'federation', 'hasura']
+    'graphql': ['graphql', 'apollo', 'schema', 'resolver', 'mutation', 'subscription', 'federation', 'hasura'],
+    'aws-cloud': ['aws', 'amazon web services', 'ec2', 'lambda', 's3', 'iam', 'vpc', 'dynamodb', 'cloudformation', 'cdk', 'sqs', 'sns'],
+    'azure-cloud': ['azure', 'microsoft azure', 'azure functions', 'cosmos db', 'entra id', 'azure ad', 'aks', 'bicep', 'arm template'],
+    'spring-boot': ['spring boot', 'spring framework', 'spring security', 'jpa', 'hibernate', 'java enterprise', 'spring cloud'],
+    'microservices': ['microservices', 'service mesh', 'saga pattern', 'cqrs', 'event sourcing', 'api gateway', 'circuit breaker'],
+    'node-backend': ['node.js', 'nodejs', 'express', 'fastify', 'nestjs', 'event loop', 'npm'],
+    'cicd-pipelines': ['ci/cd', 'github actions', 'jenkins', 'gitlab ci', 'argocd', 'gitops', 'deployment pipeline'],
+    'sre-observability': ['sre', 'site reliability', 'observability', 'prometheus', 'grafana', 'opentelemetry', 'slo', 'sli'],
+    'ai-engineering': ['llm', 'large language model', 'prompt engineering', 'rag', 'retrieval augmented', 'fine-tuning', 'embeddings', 'vector database', 'ai agent'],
+    'database-internals': ['database internals', 'query optimization', 'mvcc', 'b-tree', 'indexing strategy', 'replication', 'sharding', 'postgresql internals'],
+    'testing-qa': ['testing', 'tdd', 'test driven', 'playwright', 'cypress', 'jest', 'unit test', 'integration test', 'e2e test'],
+    'cpp-systems': ['c++', 'cpp', 'raii', 'smart pointer', 'stl', 'cmake', 'modern c++', 'templates'],
+    'dotnet-csharp': ['.net', 'dotnet', 'c#', 'csharp', 'asp.net', 'entity framework', 'blazor', 'linq'],
+    'cloud-architecture': ['cloud architecture', 'serverless', 'multi-cloud', 'well-architected', 'finops', 'disaster recovery', 'data mesh'],
+    'api-design': ['api design', 'rest api', 'grpc', 'protobuf', 'openapi', 'swagger', 'api versioning', 'rate limiting'],
+    'typescript-advanced': ['typescript', 'type system', 'generics', 'conditional types', 'mapped types', 'branded types', 'zod'],
+    'system-security': ['application security', 'owasp', 'sql injection', 'xss', 'csrf', 'threat modeling', 'secure coding', 'penetration test'],
+    'data-structures-advanced': ['trie', 'segment tree', 'bloom filter', 'skip list', 'suffix array', 'fenwick tree', 'advanced algorithms'],
+    'concurrency-parallelism': ['concurrency', 'parallelism', 'mutex', 'semaphore', 'atomic', 'lock-free', 'thread pool', 'async programming'],
+    'sql-performance': ['sql optimization', 'query plan', 'explain analyze', 'window functions', 'index optimization', 'cte', 'query tuning'],
+    'behavioral-star': ['behavioral interview', 'star method', 'tell me about a time', 'conflict resolution', 'leadership example', 'teamwork']
   }
 
   const scored = categories.map((cat) => {
