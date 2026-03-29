@@ -23,7 +23,7 @@ import { createTray } from './services/tray'
 import { streamChatOpenAI } from './services/openai-client'
 import { streamChatViaServer, getServerCredits, purchaseServerCredits } from './services/server-proxy'
 import { getDeviceId } from './services/device-id'
-import { startLiveTranscription, stopLiveTranscription, listAudioDevices, parseAudioDevices } from './services/transcription'
+import { startLiveTranscription, stopLiveTranscription, listAudioDevices, parseAudioDevices, checkTranscriptionReady, runAudioTest } from './services/transcription'
 import { checkAudioSetup, enableSystemAudioCapture, disableSystemAudioCapture, recoverAudioFromCrash } from './services/audio-setup'
 import { saveResume, getResume, clearResume } from './services/resume-store'
 import { getSettings, updateSettings, type AppSettings } from './services/settings-store'
@@ -190,7 +190,7 @@ app.whenReady().then(() => {
 
   // Live transcription — auto-enable system audio capture on macOS
   ipcMain.handle('transcription:start', (_event, captureDeviceId: number) => {
-    if (!mainWindow) return
+    if (!mainWindow) return { success: false, error: 'No window' }
     log.info(`Transcription starting (device=${captureDeviceId})`)
 
     // On macOS, enable BlackHole + ffmpeg mirror before starting whisper
@@ -198,14 +198,38 @@ app.whenReady().then(() => {
       const result = enableSystemAudioCapture()
       if (!result.success) {
         log.error('Audio capture setup failed:', result.error)
-        mainWindow.webContents.send('transcription:error', {
-          error: result.error || 'Failed to enable audio capture'
-        })
-        return
+        return { success: false, error: result.error || 'Failed to enable audio capture' }
       }
     }
 
-    startLiveTranscription(mainWindow, captureDeviceId)
+    return startLiveTranscription(mainWindow, captureDeviceId)
+  })
+
+  // Pre-flight check for transcription readiness
+  ipcMain.handle('transcription:check-ready', () => {
+    return checkTranscriptionReady()
+  })
+
+  // Audio capture test
+  ipcMain.handle('transcription:run-test', async (_event, captureDeviceId: number) => {
+    if (!mainWindow) return { success: false, linesReceived: 0, error: 'No window' }
+
+    // On macOS, enable audio capture for test
+    if (process.platform === 'darwin') {
+      const result = enableSystemAudioCapture()
+      if (!result.success) {
+        return { success: false, linesReceived: 0, error: result.error || 'Failed to enable audio capture' }
+      }
+    }
+
+    const result = await runAudioTest(mainWindow, captureDeviceId, 6000)
+
+    // Restore audio on macOS
+    if (process.platform === 'darwin') {
+      disableSystemAudioCapture()
+    }
+
+    return result
   })
 
   ipcMain.handle('transcription:stop', () => {

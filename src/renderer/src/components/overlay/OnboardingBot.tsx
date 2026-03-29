@@ -47,7 +47,7 @@ export function OnboardingBot(): React.JSX.Element | null {
   async function handleAudioTest(): Promise<void> {
     setTesting(true)
     setTestResult(null)
-    const result = await window.api.runAudioTest()
+    const result = await window.api.runOnboardingAudioTest()
     setTestResult(result)
     setTesting(false)
     if (result.success) {

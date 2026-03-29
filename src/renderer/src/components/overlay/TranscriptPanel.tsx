@@ -375,7 +375,11 @@ RULES:
   async function handleStart(): Promise<void> {
     setError(null)
     await window.api.requestMicPermission()
-    await window.api.startTranscription(selectedAudioDeviceId)
+    const result = await window.api.startTranscription(selectedAudioDeviceId)
+    if (result && !result.success) {
+      setError(result.error || 'Failed to start transcription')
+      return
+    }
     setTranscribing(true)
     startSession()
     setCreditWarning('none')

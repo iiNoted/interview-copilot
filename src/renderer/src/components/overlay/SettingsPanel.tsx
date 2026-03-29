@@ -24,7 +24,8 @@ import {
   Download,
   CheckCircle,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Play
 } from 'lucide-react'
 
 const MODELS = [
@@ -85,6 +86,11 @@ export function SettingsPanel(): React.JSX.Element {
   // Audio devices
   const [audioDevices, setAudioDevices] = useState<Array<{ id: number; name: string }>>([])
   const [loadingDevices, setLoadingDevices] = useState(false)
+
+  // Audio test
+  const [audioTesting, setAudioTesting] = useState(false)
+  const [audioTestResult, setAudioTestResult] = useState<{ success: boolean; linesReceived: number; error?: string } | null>(null)
+  const [audioTestLines, setAudioTestLines] = useState<string[]>([])
 
   // Updates
   const [updateStatus, setUpdateStatus] = useState<string>('idle')
@@ -525,6 +531,101 @@ export function SettingsPanel(): React.JSX.Element {
               ))}
             </div>
           )}
+          {/* Audio Test */}
+          <div className="space-y-2 pt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 text-xs border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+              disabled={audioTesting}
+              onClick={async () => {
+                setAudioTesting(true)
+                setAudioTestResult(null)
+                setAudioTestLines([])
+                // Listen for test lines
+                const unsub = window.api.onTranscriptionTestLine((data) => {
+                  setAudioTestLines((prev) => [...prev, data.text])
+                })
+                try {
+                  const result = await window.api.runAudioTest(selectedAudioDeviceId)
+                  setAudioTestResult(result)
+                } catch (err: any) {
+                  setAudioTestResult({ success: false, linesReceived: 0, error: err.message })
+                }
+                unsub()
+                setAudioTesting(false)
+              }}
+            >
+              {audioTesting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Testing audio... (6s)
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5" />
+                  Test Audio Capture
+                </>
+              )}
+            </Button>
+
+            {audioTesting && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500" />
+                  </span>
+                  <span className="text-xs text-blue-300">Listening... Speak or play audio now</span>
+                </div>
+                {audioTestLines.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {audioTestLines.slice(-3).map((line, i) => (
+                      <p key={i} className="text-[10px] text-green-300/80 truncate">{line}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {audioTestResult && !audioTesting && (
+              <div className={`rounded-lg px-3 py-2 border text-xs ${
+                audioTestResult.linesReceived > 0
+                  ? 'bg-green-500/10 border-green-500/20 text-green-300'
+                  : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-200'
+              }`}>
+                {audioTestResult.linesReceived > 0 ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>Audio working! Captured {audioTestResult.linesReceived} line{audioTestResult.linesReceived !== 1 ? 's' : ''}.</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>No audio captured</span>
+                    </div>
+                    {audioTestResult.error && (
+                      <p className="text-[10px] text-yellow-200/70">{audioTestResult.error}</p>
+                    )}
+                    <p className="text-[10px] text-yellow-200/70">
+                      {process.platform === 'win32' || navigator.userAgent.includes('Windows')
+                        ? 'Tip: Select a different device above, or enable "Stereo Mix" in Windows Sound settings to capture system audio.'
+                        : 'Tip: Ensure BlackHole is installed for system audio capture, or try speaking into your microphone.'}
+                    </p>
+                  </div>
+                )}
+                {audioTestLines.length > 0 && (
+                  <div className="mt-1.5 pt-1.5 border-t border-white/5 space-y-0.5">
+                    {audioTestLines.slice(-3).map((line, i) => (
+                      <p key={i} className="text-[10px] text-white/50 truncate">{line}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <p className="text-[10px] text-white/30">
             {t('settings.audio.hint')}
           </p>

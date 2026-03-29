@@ -22,8 +22,19 @@ const api = {
   },
 
   // Live transcription (whisper-stream in main process)
-  startTranscription: (captureDeviceId: number): Promise<void> => {
+  startTranscription: (captureDeviceId: number): Promise<{ success: boolean; error?: string }> => {
     return ipcRenderer.invoke('transcription:start', captureDeviceId)
+  },
+  checkTranscriptionReady: (): Promise<{ ready: boolean; error?: string; whisperPath?: string; modelPath?: string }> => {
+    return ipcRenderer.invoke('transcription:check-ready')
+  },
+  runAudioTest: (captureDeviceId: number): Promise<{ success: boolean; linesReceived: number; error?: string }> => {
+    return ipcRenderer.invoke('transcription:run-test', captureDeviceId)
+  },
+  onTranscriptionTestLine: (callback: (data: { text: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { text: string }) => callback(data)
+    ipcRenderer.on('transcription:test-line', handler)
+    return () => ipcRenderer.removeListener('transcription:test-line', handler)
   },
   stopTranscription: (): Promise<void> => {
     return ipcRenderer.invoke('transcription:stop')
@@ -340,7 +351,7 @@ const api = {
   }> => {
     return ipcRenderer.invoke('onboarding:get-status')
   },
-  runAudioTest: (): Promise<{ success: boolean; error?: string; linesReceived?: number }> => {
+  runOnboardingAudioTest: (): Promise<{ success: boolean; error?: string; linesReceived?: number }> => {
     return ipcRenderer.invoke('onboarding:run-audio-test')
   },
   completeOnboarding: (): Promise<void> => {
