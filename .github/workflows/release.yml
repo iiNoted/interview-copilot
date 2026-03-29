@@ -27,10 +27,10 @@ jobs:
           - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews" }
           - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck" }
     env:
-      # macOS signing: use cert from secrets when available, otherwise build unsigned
+      # macOS code signing (Developer ID Application certificate as base64 .p12)
       CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-      # Notarization: only when Apple credentials are configured
+      # macOS notarization (Apple ID + app-specific password)
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
