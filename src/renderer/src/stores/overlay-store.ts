@@ -53,7 +53,7 @@ interface OverlayState {
   selectedAudioDeviceId: number
 
   // AI sidebar state
-  aiBackend: 'openclaw' | 'anthropic' | 'openai'
+  aiBackend: 'openai'
   detectedQuestions: DetectedQuestion[]
   processedTranscriptIndices: Set<number>
 
@@ -78,7 +78,7 @@ interface OverlayState {
   setTranscribing: (val: boolean) => void
   toggleWebSearch: () => void
   toggleSourcethread: () => void
-  setAiBackend: (backend: 'openclaw' | 'anthropic' | 'openai') => void
+  setAiBackend: (backend: 'openai') => void
   setShowSettings: (show: boolean) => void
   setSelectedAudioDeviceId: (id: number) => void
 

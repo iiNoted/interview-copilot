@@ -14,16 +14,11 @@ import {
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@renderer/components/ui/tooltip'
-import { ChevronDown, Zap, Key } from 'lucide-react'
+import { ChevronDown, Zap } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 
 const MODELS = [
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-  { id: 'gpt-4o', label: 'GPT-4o' },
-  { id: 'gpt-4.1', label: 'GPT-4.1' },
-  { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5' },
-  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6' },
-  { id: 'claude-opus-4-6', label: 'Opus 4.6' }
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini' }
 ]
 
 export function OverlayContainer(): React.JSX.Element {
@@ -34,7 +29,6 @@ export function OverlayContainer(): React.JSX.Element {
     setShowSettings,
     currentModel,
     setModel,
-    aiBackend,
     resumeFilename,
     resumeText,
     setResume,
@@ -94,7 +88,6 @@ export function OverlayContainer(): React.JSX.Element {
       }
     })
     window.api.getSettings().then((s) => {
-      useOverlayStore.getState().setAiBackend(s.aiBackend as 'openclaw' | 'anthropic' | 'openai')
       if (s.preferredModel) {
         useOverlayStore.getState().setModel(s.preferredModel)
       }
@@ -355,22 +348,8 @@ export function OverlayContainer(): React.JSX.Element {
         <div className="flex items-center justify-between px-3 py-1.5 border-t border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 text-[10px] text-white/40">
-              {aiBackend === 'openai' ? (
-                <>
-                  <Zap className="h-3 w-3 text-green-400" />
-                  <span>OpenAI</span>
-                </>
-              ) : aiBackend === 'anthropic' ? (
-                <>
-                  <Key className="h-3 w-3 text-blue-400" />
-                  <span>Anthropic</span>
-                </>
-              ) : (
-                <>
-                  <Zap className="h-3 w-3 text-yellow-400" />
-                  <span>OpenClaw</span>
-                </>
-              )}
+              <Zap className="h-3 w-3 text-green-400" />
+              <span>OpenAI</span>
             </div>
 
             {/* Resume badge */}

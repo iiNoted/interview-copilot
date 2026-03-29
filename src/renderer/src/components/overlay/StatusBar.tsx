@@ -9,9 +9,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ChevronDown, Zap } from 'lucide-react'
 
 const MODELS = [
-  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
-  { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' }
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini' }
 ]
 
 export function StatusBar(): React.JSX.Element {
@@ -22,7 +20,7 @@ export function StatusBar(): React.JSX.Element {
     <div className="flex items-center justify-between px-3 py-1.5 border-t border-white/5 bg-white/[0.02]">
       <div className="flex items-center gap-1.5 text-[10px] text-white/40">
         <Zap className="h-3 w-3 text-green-400" />
-        <span>OpenClaw</span>
+        <span>OpenAI</span>
       </div>
 
       <DropdownMenu>

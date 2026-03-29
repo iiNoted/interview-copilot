@@ -1,12 +1,20 @@
 import { BrowserWindow } from 'electron'
 
+export interface StreamResult {
+  inputTokens: number
+  outputTokens: number
+}
+
 export async function streamChatOpenAI(
   window: BrowserWindow,
   requestId: string,
   messages: Array<{ role: string; content: string }>,
   model: string = 'gpt-4o-mini',
   apiKey: string
-): Promise<void> {
+): Promise<StreamResult> {
+  let inputTokens = 0
+  let outputTokens = 0
+
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -18,6 +26,7 @@ export async function streamChatOpenAI(
         model,
         max_tokens: 1024,
         stream: true,
+        stream_options: { include_usage: true },
         messages: messages.map((m) => ({ role: m.role, content: m.content }))
       })
     })
@@ -28,13 +37,13 @@ export async function streamChatOpenAI(
         id: requestId,
         error: `OpenAI API ${response.status}: ${errText.slice(0, 200)}`
       })
-      return
+      return { inputTokens: 0, outputTokens: 0 }
     }
 
     const reader = response.body?.getReader()
     if (!reader) {
       window.webContents.send('ai:error', { id: requestId, error: 'No response body' })
-      return
+      return { inputTokens: 0, outputTokens: 0 }
     }
 
     const decoder = new TextDecoder()
@@ -55,12 +64,20 @@ export async function streamChatOpenAI(
 
         try {
           const event = JSON.parse(data)
+
+          // Stream content
           const text = event.choices?.[0]?.delta?.content
           if (text) {
             window.webContents.send('ai:stream-chunk', {
               id: requestId,
               text
             })
+          }
+
+          // Usage info (sent in final chunk with stream_options.include_usage)
+          if (event.usage) {
+            inputTokens = event.usage.prompt_tokens || 0
+            outputTokens = event.usage.completion_tokens || 0
           }
         } catch {
           // Skip malformed SSE lines
@@ -69,10 +86,12 @@ export async function streamChatOpenAI(
     }
 
     window.webContents.send('ai:stream-done', { id: requestId })
+    return { inputTokens, outputTokens }
   } catch (err: any) {
     window.webContents.send('ai:error', {
       id: requestId,
       error: `OpenAI error: ${err.message}`
     })
+    return { inputTokens: 0, outputTokens: 0 }
   }
 }

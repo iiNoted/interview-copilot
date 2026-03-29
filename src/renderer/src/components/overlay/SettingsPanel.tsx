@@ -27,22 +27,15 @@ import {
   AlertCircle
 } from 'lucide-react'
 
-const OPENAI_MODELS = [
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Fast & cheap' },
-  { id: 'gpt-4o', label: 'GPT-4o', desc: 'Balanced' },
-  { id: 'gpt-4.1', label: 'GPT-4.1', desc: 'Best' }
-]
-
-const CLAUDE_MODELS = [
-  { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', desc: 'Fast & cheap' },
-  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', desc: 'Balanced' },
-  { id: 'claude-opus-4-6', label: 'Opus 4.6', desc: 'Best' }
+const MODELS = [
+  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Fast & cheap', available: true },
+  { id: 'gpt-4o', label: 'GPT-4o', desc: 'Balanced — coming soon', available: false },
+  { id: 'gpt-4.1', label: 'GPT-4.1', desc: 'Best — coming soon', available: false }
 ]
 
 export function SettingsPanel(): React.JSX.Element {
   const { t, locale, setLocale } = useT()
   const {
-    setAiBackend,
     currentModel,
     setModel,
     resumeFilename,
@@ -63,9 +56,7 @@ export function SettingsPanel(): React.JSX.Element {
   const [jobDragOver, setJobDragOver] = useState(false)
   const [jobTextInput, setJobTextInput] = useState('')
 
-  const [apiKey, setApiKey] = useState('')
   const [openaiKey, setOpenaiKey] = useState('')
-  const [showKey, setShowKey] = useState(false)
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [billingEmail, setBillingEmail] = useState('')
   const [usage, setUsage] = useState<{
@@ -79,6 +70,15 @@ export function SettingsPanel(): React.JSX.Element {
     unpaidCredits: number
     hasStripeKey: boolean
   } | null>(null)
+  const [credits, setCredits] = useState<{
+    balanceUsd: number
+    totalUsedUsd: number
+    queriesUsed: number
+    purchaseCount: number
+  } | null>(null)
+  const [hasHouseKey, setHasHouseKey] = useState(false)
+  const [purchaseEmail, setPurchaseEmail] = useState('')
+  const [purchasing, setPurchasing] = useState(false)
 
   // Auth
   const [authUser, setAuthUser] = useState<{ id: string; email: string; name: string; avatarUrl: string } | null>(null)
@@ -136,9 +136,7 @@ export function SettingsPanel(): React.JSX.Element {
   // Load settings from main process
   useEffect(() => {
     window.api.getSettings().then((s) => {
-      if (s.anthropicApiKey) setApiKey(s.anthropicApiKey)
       if (s.openaiApiKey) setOpenaiKey(s.openaiApiKey)
-      setAiBackend(s.aiBackend as 'openclaw' | 'anthropic' | 'openai')
       setRemotePort(s.remoteViewPort || 18791)
       setRemoteToken(s.remoteViewToken || null)
     })
@@ -152,6 +150,8 @@ export function SettingsPanel(): React.JSX.Element {
       setUsage({ queries: u.queries, totalChargedUsd: u.totalChargedUsd })
     })
     window.api.getBillingState().then(setBilling)
+    window.api.getCredits().then(setCredits)
+    window.api.hasHouseKey().then(setHasHouseKey)
     window.api.getRemoteViewStatus().then((status) => {
       setRemoteEnabled(status.running)
       if (status.running && status.url) {
@@ -171,10 +171,6 @@ export function SettingsPanel(): React.JSX.Element {
     }, 3000)
     return () => clearInterval(interval)
   }, [remoteEnabled])
-
-  async function saveApiKey(): Promise<void> {
-    await window.api.updateSettings({ anthropicApiKey: apiKey || null })
-  }
 
   async function handleUploadResume(): Promise<void> {
     const result = await window.api.uploadResume()
@@ -331,16 +327,85 @@ export function SettingsPanel(): React.JSX.Element {
           </section>
         )}
 
-        {/* AI Connection — OpenAI */}
+        {/* AI Credits */}
         <section className="space-y-2">
           <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide">
-            OpenAI API Key
+            AI Credits
           </h3>
-          {openaiKey ? (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+          {credits && hasHouseKey && (
+            <div className="space-y-2">
+              <div className="bg-white/5 rounded-lg px-3 py-2.5 border border-white/10 space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/50">Balance</span>
+                  <span className={credits.balanceUsd > 0 ? 'text-green-400' : 'text-red-400'}>
+                    ${credits.balanceUsd.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/50">Queries used</span>
+                  <span className="text-white/80">{credits.queriesUsed}</span>
+                </div>
+                {/* Credit bar */}
+                <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${credits.balanceUsd > 0.2 ? 'bg-green-500' : credits.balanceUsd > 0 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                    style={{ width: `${Math.min(100, (credits.balanceUsd / 0.50) * 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {credits.balanceUsd <= 0 && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2.5 space-y-2">
+                  <p className="text-xs text-red-300">
+                    Free credits exhausted. Refill or add your own API key below.
+                  </p>
+                  <div className="space-y-1.5">
+                    <input
+                      type="email"
+                      value={purchaseEmail}
+                      onChange={(e) => setPurchaseEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-green-500/50"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 text-xs border-green-500/30 text-green-300 hover:bg-green-500/10"
+                      disabled={!purchaseEmail.includes('@') || purchasing}
+                      onClick={async () => {
+                        setPurchasing(true)
+                        await window.api.purchaseCredits(purchaseEmail)
+                        // Poll for updated credits after purchase
+                        const poll = setInterval(async () => {
+                          const c = await window.api.getCredits()
+                          setCredits(c)
+                          if (c.balanceUsd > 0) clearInterval(poll)
+                        }, 3000)
+                        setTimeout(() => { clearInterval(poll); setPurchasing(false) }, 120000)
+                      }}
+                    >
+                      {purchasing ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CreditCard className="h-3.5 w-3.5" />
+                      )}
+                      {purchasing ? 'Waiting for payment...' : 'Refill credits — $2'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Own API key — upgrade path */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] text-white/30">
+              {hasHouseKey ? 'Or bring your own OpenAI key for unlimited usage:' : 'Enter your OpenAI API key:'}
+            </p>
+            {openaiKey ? (
+              <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
                 <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                <span className="text-xs text-white/70">OpenAI connected</span>
+                <span className="text-xs text-green-300">Your API key active</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -353,9 +418,7 @@ export function SettingsPanel(): React.JSX.Element {
                   Remove
                 </Button>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
+            ) : (
               <div className="flex items-center gap-1.5">
                 <input
                   type={showOpenaiKey ? 'text' : 'password'}
@@ -384,112 +447,28 @@ export function SettingsPanel(): React.JSX.Element {
                   Save
                 </Button>
               </div>
-              <p className="text-[10px] text-white/20">
-                Get your key at platform.openai.com/api-keys
-              </p>
-            </div>
-          )}
-        </section>
-
-        {/* AI Connection — Anthropic (optional) */}
-        <section className="space-y-2">
-          <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide">
-            Anthropic Key (optional)
-          </h3>
-          {apiKey?.startsWith('cpk_') ? (
-            <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
-              <div className="h-2 w-2 rounded-full bg-green-400"></div>
-              <span className="text-xs text-white/70">Connected via SourceThread</span>
-            </div>
-          ) : apiKey?.startsWith('sk-ant-') ? (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
-                <div className="h-2 w-2 rounded-full bg-blue-400"></div>
-                <span className="text-xs text-white/70">Direct Anthropic key</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto h-5 text-[10px] text-red-400/60 hover:text-red-400"
-                  onClick={async () => {
-                    setApiKey('')
-                    await window.api.updateSettings({ anthropicApiKey: null })
-                  }}
-                >
-                  Remove
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-ant-... (optional)"
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-white/30"
-                  onClick={() => setShowKey(!showKey)}
-                >
-                  {showKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-[10px]"
-                  onClick={saveApiKey}
-                  disabled={!apiKey.startsWith('sk-ant-')}
-                >
-                  Save
-                </Button>
-              </div>
-              <p className="text-[10px] text-white/20">
-                For Claude models. Leave blank to use OpenAI only.
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </section>
 
         {/* Model */}
         <section className="space-y-2">
           <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wide">{t('settings.model')}</h3>
-          <p className="text-[10px] text-white/30">OpenAI</p>
           <div className="space-y-1">
-            {OPENAI_MODELS.map((m) => (
+            {MODELS.map((m) => (
               <button
                 key={m.id}
                 onClick={() => {
+                  if (!m.available) return
                   setModel(m.id)
                   window.api.updateSettings({ preferredModel: m.id })
                 }}
                 className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${
-                  currentModel === m.id
-                    ? 'border-green-500/40 bg-green-500/10 text-green-300'
-                    : 'border-white/10 text-white/50 hover:border-white/20'
-                }`}
-              >
-                <span>{m.label}</span>
-                <span className="text-[10px] text-white/30">{m.desc}</span>
-              </button>
-            ))}
-          </div>
-          <p className="text-[10px] text-white/30 mt-2">Claude (requires Anthropic key)</p>
-          <div className="space-y-1">
-            {CLAUDE_MODELS.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => {
-                  setModel(m.id)
-                  window.api.updateSettings({ preferredModel: m.id })
-                }}
-                className={`w-full flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors ${
-                  currentModel === m.id
-                    ? 'border-blue-500/40 bg-blue-500/10 text-blue-300'
-                    : 'border-white/10 text-white/50 hover:border-white/20'
+                  !m.available
+                    ? 'border-white/5 text-white/25 cursor-not-allowed'
+                    : currentModel === m.id
+                      ? 'border-green-500/40 bg-green-500/10 text-green-300'
+                      : 'border-white/10 text-white/50 hover:border-white/20'
                 }`}
               >
                 <span>{m.label}</span>
@@ -833,9 +812,6 @@ export function SettingsPanel(): React.JSX.Element {
                   <span className="text-white/80">{billing.totalCreditsUsed}</span>
                 </div>
               </div>
-              <p className="text-[10px] text-white/30">
-                {t('settings.billing.pay_per_use')}
-              </p>
               <Button
                 variant="outline"
                 size="sm"
@@ -849,39 +825,13 @@ export function SettingsPanel(): React.JSX.Element {
           ) : (
             <>
               <p className="text-xs text-white/50">
-                {t('settings.billing.subscribe_prompt')}
+                AI powered by GPT-4o Mini. Free credits included, or add your own key.
               </p>
               <div className="bg-white/5 rounded-lg px-3 py-2.5 space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-white/50">{t('gate.apikey.haiku')}</span>
-                  <span className="text-white/70">~$0.02/response</span>
+                  <span className="text-white/50">GPT-4o Mini</span>
+                  <span className="text-white/70">~$0.002/response</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-white/50">{t('gate.apikey.sonnet')}</span>
-                  <span className="text-white/70">~$0.05/response</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-white/50">{t('gate.apikey.opus')}</span>
-                  <span className="text-white/70">~$0.10/response</span>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <input
-                  type="email"
-                  value={billingEmail}
-                  onChange={(e) => setBillingEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-green-500/50"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-2 text-xs border-green-500/30 text-green-300 hover:bg-green-500/10"
-                  onClick={handleCheckout}
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {t('settings.billing.subscribe')}
-                </Button>
               </div>
             </>
           )}

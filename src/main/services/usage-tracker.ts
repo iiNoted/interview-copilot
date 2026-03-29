@@ -26,11 +26,11 @@ interface UsageData {
   lifetimeChargedUsd: number
 }
 
-// Anthropic pricing per 1M tokens (as of 2026)
+// OpenAI pricing per 1M tokens (as of 2026)
 const PRICING: Record<string, { input: number; output: number }> = {
-  'claude-opus-4-6': { input: 15.0, output: 75.0 },
-  'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
-  'claude-haiku-4-5-20251001': { input: 0.8, output: 4.0 }
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-4o': { input: 2.50, output: 10.00 },
+  'gpt-4.1': { input: 2.00, output: 8.00 }
 }
 
 const MARKUP = 4 // 4x the API cost
@@ -59,7 +59,7 @@ function calculateCost(
   inputTokens: number,
   outputTokens: number
 ): { costUsd: number; chargedUsd: number } {
-  const pricing = PRICING[model] || PRICING['claude-haiku-4-5-20251001']
+  const pricing = PRICING[model] || PRICING['gpt-4o-mini']
   const costUsd =
     (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output
   return { costUsd, chargedUsd: costUsd * MARKUP }

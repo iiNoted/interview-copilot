@@ -169,7 +169,7 @@ Be concise — max 150 words. Use plain language, not textbook definitions.`
       }
     })
 
-    window.api.queryAI({ requestId, messages, model: 'claude-haiku-4-5-20251001' })
+    window.api.queryAI({ requestId, messages, model: 'gpt-4o-mini' })
 
     return () => {
       removeChunk()

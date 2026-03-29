@@ -4,10 +4,10 @@ import Store from 'electron-store'
 import { getAuthUser } from './auth-store'
 
 // Pricing: 4x the actual API cost
-// Anthropic pricing per 1M tokens:
-//   Opus 4.6:  $15 input / $75 output   → We charge: $60 input / $300 output
-//   Sonnet 4.6: $3 input / $15 output    → We charge: $12 input / $60 output
-//   Haiku 4.5:  $0.80 input / $4 output  → We charge: $3.20 input / $16 output
+// OpenAI pricing per 1M tokens:
+//   GPT-4o-mini: $0.15 input / $0.60 output → We charge: $0.60 input / $2.40 output
+//   GPT-4o:      $2.50 input / $10 output   → We charge: $10 input / $40 output
+//   GPT-4.1:     $2.00 input / $8 output    → We charge: $8 input / $32 output
 //
 // 1 credit = $0.01 (1 cent)
 // Stripe webhook handled by SourceThread server at copilot.sourcethread.com
@@ -83,11 +83,11 @@ export function calculateCredits(
   outputTokens: number
 ): number {
   const pricing: Record<string, { input: number; output: number }> = {
-    'claude-opus-4-6': { input: 15.0, output: 75.0 },
-    'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
-    'claude-haiku-4-5-20251001': { input: 0.8, output: 4.0 }
+    'gpt-4o-mini': { input: 0.15, output: 0.60 },
+    'gpt-4o': { input: 2.50, output: 10.00 },
+    'gpt-4.1': { input: 2.00, output: 8.00 }
   }
-  const p = pricing[model] || pricing['claude-haiku-4-5-20251001']
+  const p = pricing[model] || pricing['gpt-4o-mini']
   const apiCostUsd =
     (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output
   const chargedUsd = apiCostUsd * MARKUP

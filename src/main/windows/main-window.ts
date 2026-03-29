@@ -31,7 +31,7 @@ export function createMainWindow(): BrowserWindow {
         responseHeaders: {
           ...details.responseHeaders,
           'Content-Security-Policy': [
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://copilot.sourcethread.com https://app.sourcethread.com https://*.sourcethread.com https://api.anthropic.com https://api.openai.com wss:"
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://copilot.sourcethread.com https://app.sourcethread.com https://*.sourcethread.com https://api.openai.com wss:"
           ]
         }
       })

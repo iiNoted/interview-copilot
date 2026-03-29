@@ -64,7 +64,7 @@ export function TermsGate({ children }: TermsGateProps): React.JSX.Element {
 
           <section>
             <h2 className="text-white/80 font-semibold mb-1">4. Privacy & Data Collection</h2>
-            <p>Audio transcription is processed locally on your device. We do not record, store, or transmit your audio. AI coaching requests are sent to third-party AI providers (Anthropic) using your API key or our managed service. We collect: (a) email address for account management; (b) subscription status for billing; (c) anonymous usage analytics (feature usage, error rates). We do NOT collect: interview content, transcripts, resumes, job descriptions, or any personally identifiable conversation data. The Remote View feature operates on your local network only; no data passes through our servers.</p>
+            <p>Audio transcription is processed locally on your device. We do not record, store, or transmit your audio. AI coaching requests are sent to third-party AI providers (OpenAI) using your API key or our managed service. We collect: (a) email address for account management; (b) subscription status for billing; (c) anonymous usage analytics (feature usage, error rates). We do NOT collect: interview content, transcripts, resumes, job descriptions, or any personally identifiable conversation data. The Remote View feature operates on your local network only; no data passes through our servers.</p>
           </section>
 
           <section>

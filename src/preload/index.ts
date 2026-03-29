@@ -133,7 +133,6 @@ const api = {
   // Settings
   getSettings: (): Promise<{
     aiBackend: string
-    anthropicApiKey: string | null
     openaiApiKey: string | null
     preferredModel: string
     stripeCustomerId: string | null
@@ -146,6 +145,17 @@ const api = {
   },
   updateSettings: (partial: Record<string, unknown>): Promise<void> => {
     return ipcRenderer.invoke('settings:update', partial)
+  },
+
+  // Credits
+  getCredits: (): Promise<{ balanceUsd: number; totalUsedUsd: number; queriesUsed: number }> => {
+    return ipcRenderer.invoke('credits:get')
+  },
+  hasHouseKey: (): Promise<boolean> => {
+    return ipcRenderer.invoke('credits:has-house-key')
+  },
+  purchaseCredits: (email: string): Promise<string | null> => {
+    return ipcRenderer.invoke('credits:purchase', email)
   },
 
   // Usage

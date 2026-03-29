@@ -20,9 +20,8 @@ import { startGoogleAuth } from './services/google-auth'
 import { createMainWindow } from './windows/main-window'
 import { registerHotkeys, unregisterHotkeys } from './services/hotkeys'
 import { createTray } from './services/tray'
-import { streamChat } from './services/openclaw-client'
-import { streamChatAnthropic } from './services/anthropic-client'
 import { streamChatOpenAI } from './services/openai-client'
+import { getCredits, hasCredits, getHouseApiKey, deductCredits, purchaseCredits, stopCreditPolling } from './services/credit-store'
 import { startLiveTranscription, stopLiveTranscription, listAudioDevices, parseAudioDevices } from './services/transcription'
 import { checkAudioSetup, enableSystemAudioCapture, disableSystemAudioCapture, recoverAudioFromCrash } from './services/audio-setup'
 import { saveResume, getResume, clearResume } from './services/resume-store'
@@ -152,26 +151,30 @@ app.whenReady().then(() => {
       if (!mainWindow) return
       const settings = getSettings()
       try {
-        // Determine backend: OpenAI key → openai, cpk_ → copilot-proxy, otherwise → direct anthropic
-        let backend: string
-        if (settings.openaiApiKey && model.startsWith('gpt-')) {
-          backend = 'openai'
-        } else if (settings.anthropicApiKey?.startsWith('cpk_')) {
-          backend = 'copilot-proxy'
-        } else {
-          backend = 'direct'
+        // Priority: user's own key > house key with credits
+        const userKey = settings.openaiApiKey
+        const houseKey = getHouseApiKey()
+        const usingHouseKey = !userKey && !!houseKey && hasCredits()
+
+        const apiKey = userKey || (usingHouseKey ? houseKey : null)
+        if (!apiKey) {
+          const credits = getCredits()
+          const msg = credits.balanceUsd <= 0
+            ? 'Free credits exhausted. Go to Settings and add your OpenAI API key to continue.'
+            : 'No API key configured. Go to Settings and enter your OpenAI API key.'
+          mainWindow.webContents.send('ai:error', { id: requestId, error: msg })
+          return
         }
-        log.info(`AI query [${requestId}] model=${model} backend=${backend}`)
-        if (backend === 'openai') {
-          await streamChatOpenAI(mainWindow, requestId, messages, model, settings.openaiApiKey!)
-          trackQuery(model, 0, 0)
-        } else if (backend === 'copilot-proxy') {
-          await streamChatAnthropic(mainWindow, requestId, messages, model)
-          trackQuery(model, 0, 0)
-        } else {
-          await streamChat(mainWindow, requestId, messages as any, model)
-          trackQuery(model, 0, 0)
+
+        log.info(`AI query [${requestId}] model=${model} source=${usingHouseKey ? 'house' : 'user'}`)
+        const usage = await streamChatOpenAI(mainWindow, requestId, messages, model, apiKey)
+
+        // Deduct credits if using house key
+        if (usingHouseKey && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
+          deductCredits(model, usage.inputTokens, usage.outputTokens)
         }
+
+        trackQuery(model, usage.inputTokens, usage.outputTokens)
       } catch (err: any) {
         log.error(`AI query failed [${requestId}]:`, err.message)
         mainWindow.webContents.send('ai:error', {
@@ -354,6 +357,19 @@ app.whenReady().then(() => {
     return app.getVersion()
   })
 
+  // Credits
+  ipcMain.handle('credits:get', () => {
+    return getCredits()
+  })
+
+  ipcMain.handle('credits:has-house-key', () => {
+    return !!getHouseApiKey()
+  })
+
+  ipcMain.handle('credits:purchase', async (_event, email: string) => {
+    return purchaseCredits(email)
+  })
+
   // Settings
   ipcMain.handle('settings:get', () => {
     return getSettings()
@@ -362,7 +378,7 @@ app.whenReady().then(() => {
   ipcMain.handle('settings:update', (_event, partial: Record<string, unknown>) => {
     // Whitelist allowed keys — prevent renderer from overwriting sensitive fields
     const ALLOWED_SETTINGS_KEYS = new Set([
-      'aiBackend', 'anthropicApiKey', 'openaiApiKey', 'preferredModel', 'onboardingComplete',
+      'aiBackend', 'openaiApiKey', 'preferredModel', 'onboardingComplete',
       'remoteViewEnabled', 'remoteViewPort', 'locale'
     ])
     const sanitized: Record<string, unknown> = {}
@@ -562,7 +578,7 @@ app.whenReady().then(() => {
       audioDetails: audioSetup,
       resumeUploaded: !!resume,
       jobUploaded: !!job,
-      apiConfigured: !!settings.anthropicApiKey || true, // OpenClaw always available
+      apiConfigured: !!settings.openaiApiKey || (!!getHouseApiKey() && hasCredits()),
       onboardingComplete: settings.onboardingComplete || false
     }
   })
@@ -647,6 +663,7 @@ app.on('will-quit', () => {
   disableSystemAudioCapture()
   stopWebhookServer()
   stopFlatPolling()
+  stopCreditPolling()
   stopRemoteViewServer()
 })
 

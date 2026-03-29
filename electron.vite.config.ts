@@ -6,6 +6,9 @@ const isProd = process.env.NODE_ENV === 'production'
 
 export default defineConfig({
   main: {
+    define: {
+      '__HOUSE_OPENAI_KEY__': JSON.stringify(process.env.HOUSE_OPENAI_KEY || '')
+    },
     build: {
       sourcemap: false,
       minify: isProd ? 'terser' : false,

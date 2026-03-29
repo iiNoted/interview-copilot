@@ -43,7 +43,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
 
         const apiKey = await window.api.fetchCopilotApiKey(email, flatState.customerId)
         if (apiKey) {
-          await window.api.updateSettings({ anthropicApiKey: apiKey, aiBackend: 'anthropic' })
+          await window.api.updateSettings({ openaiApiKey: apiKey, aiBackend: 'openai' })
           setStep('ready')
           return
         }
@@ -84,7 +84,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
 
       // 3. Check if API key already stored
       const settings = await window.api.getSettings()
-      if (settings.anthropicApiKey) {
+      if (settings.openaiApiKey) {
         setStep('ready')
         return
       }
@@ -139,7 +139,7 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
         const isActive = await window.api.checkFlatBillingFresh(user.email)
         if (isActive) {
           const settings = await window.api.getSettings()
-          if (settings.anthropicApiKey) {
+          if (settings.openaiApiKey) {
             setStep('ready')
           } else {
             await provisionApiKey(user.email)
