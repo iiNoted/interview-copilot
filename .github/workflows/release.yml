@@ -492,8 +492,8 @@ jobs:
       matrix:
         product:
           - { id: copilot, storeId: "9MTCPJ47W0WR" }
-          - { id: hireready, storeId: "PLACEHOLDER_HIREREADY" }
-          - { id: techscreen, storeId: "PLACEHOLDER_TECHSCREEN" }
+          - { id: hireready, storeId: "9P95VLD9208G" }
+          - { id: techscreen, storeId: "9N1JJLN1QRL9" }
           - { id: datahire, storeId: "PLACEHOLDER_DATAHIRE" }
           - { id: cloudprep, storeId: "PLACEHOLDER_CLOUDPREP" }
           - { id: interviewghost, storeId: "PLACEHOLDER_INTERVIEWGHOST" }

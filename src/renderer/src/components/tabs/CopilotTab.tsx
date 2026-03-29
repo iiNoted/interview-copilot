@@ -61,7 +61,7 @@ export function CopilotTab(): React.JSX.Element {
       }
     })
     window.api.getSettings().then((s) => {
-      useOverlayStore.getState().setAiBackend(s.aiBackend as 'openclaw' | 'anthropic')
+      useOverlayStore.getState().setAiBackend(s.aiBackend as 'openclaw' | 'anthropic' | 'openai')
       if (s.preferredModel) {
         useOverlayStore.getState().setModel(s.preferredModel)
       }

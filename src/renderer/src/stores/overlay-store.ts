@@ -78,7 +78,7 @@ interface OverlayState {
   setTranscribing: (val: boolean) => void
   toggleWebSearch: () => void
   toggleSourcethread: () => void
-  setAiBackend: (backend: 'openclaw' | 'anthropic') => void
+  setAiBackend: (backend: 'openclaw' | 'anthropic' | 'openai') => void
   setShowSettings: (show: boolean) => void
   setSelectedAudioDeviceId: (id: number) => void
 

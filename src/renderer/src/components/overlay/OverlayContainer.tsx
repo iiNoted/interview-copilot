@@ -94,7 +94,7 @@ export function OverlayContainer(): React.JSX.Element {
       }
     })
     window.api.getSettings().then((s) => {
-      useOverlayStore.getState().setAiBackend(s.aiBackend as 'openclaw' | 'anthropic')
+      useOverlayStore.getState().setAiBackend(s.aiBackend as 'openclaw' | 'anthropic' | 'openai')
       if (s.preferredModel) {
         useOverlayStore.getState().setModel(s.preferredModel)
       }
@@ -355,14 +355,19 @@ export function OverlayContainer(): React.JSX.Element {
         <div className="flex items-center justify-between px-3 py-1.5 border-t border-white/5 bg-white/[0.02]">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 text-[10px] text-white/40">
-              {aiBackend === 'anthropic' ? (
+              {aiBackend === 'openai' ? (
+                <>
+                  <Zap className="h-3 w-3 text-green-400" />
+                  <span>OpenAI</span>
+                </>
+              ) : aiBackend === 'anthropic' ? (
                 <>
                   <Key className="h-3 w-3 text-blue-400" />
-                  <span>Direct API</span>
+                  <span>Anthropic</span>
                 </>
               ) : (
                 <>
-                  <Zap className="h-3 w-3 text-green-400" />
+                  <Zap className="h-3 w-3 text-yellow-400" />
                   <span>OpenClaw</span>
                 </>
               )}
