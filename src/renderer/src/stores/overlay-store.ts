@@ -58,6 +58,10 @@ interface OverlayState {
   sessionMaxSeconds: number
   sessionExpired: boolean
 
+  // Server-side session tracking
+  serverSessionId: string | null
+  serverExpiresAt: number | null  // epoch ms
+
   // Credit warning (show when < 20% remaining)
   creditWarning: 'none' | 'low' | 'exhausted'
 
@@ -89,6 +93,8 @@ interface OverlayState {
   endSession: () => void
   tickSession: () => void
   setCreditWarning: (level: 'none' | 'low' | 'exhausted') => void
+  setServerSession: (sessionId: string, expiresAt: string) => void
+  clearServerSession: () => void
   toggleWebSearch: () => void
   toggleSourcethread: () => void
   setAiBackend: (backend: 'openai') => void
@@ -154,6 +160,8 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   sessionElapsedSeconds: 0,
   sessionMaxSeconds: 3600, // 60 minutes
   sessionExpired: false,
+  serverSessionId: null,
+  serverExpiresAt: null,
   creditWarning: 'none',
   aiBackend: 'openai',
   detectedQuestions: [],
@@ -167,7 +175,7 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   setModel: (model) => set({ currentModel: model }),
   setTranscribing: (val) => set({ isTranscribing: val }),
   startSession: () => set({ sessionStartedAt: Date.now(), sessionElapsedSeconds: 0, sessionExpired: false }),
-  endSession: () => set({ sessionStartedAt: null, sessionElapsedSeconds: 0 }),
+  endSession: () => set({ sessionStartedAt: null, sessionElapsedSeconds: 0, serverSessionId: null, serverExpiresAt: null }),
   tickSession: () => set((s) => {
     if (!s.sessionStartedAt) return s
     const elapsed = Math.floor((Date.now() - s.sessionStartedAt) / 1000)
@@ -175,6 +183,8 @@ export const useOverlayStore = create<OverlayState>((set) => ({
     return { sessionElapsedSeconds: elapsed, sessionExpired: expired }
   }),
   setCreditWarning: (level) => set({ creditWarning: level }),
+  setServerSession: (sessionId, expiresAt) => set({ serverSessionId: sessionId, serverExpiresAt: new Date(expiresAt).getTime() }),
+  clearServerSession: () => set({ serverSessionId: null, serverExpiresAt: null }),
   toggleWebSearch: () => set((s) => ({ webSearchEnabled: !s.webSearchEnabled })),
   toggleSourcethread: () => set((s) => ({ sourcethreadEnabled: !s.sourcethreadEnabled })),
   setAiBackend: (backend) => set({ aiBackend: backend }),

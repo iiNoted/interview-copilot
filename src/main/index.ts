@@ -21,7 +21,7 @@ import { createMainWindow } from './windows/main-window'
 import { registerHotkeys, unregisterHotkeys } from './services/hotkeys'
 import { createTray } from './services/tray'
 import { streamChatOpenAI } from './services/openai-client'
-import { streamChatViaServer, getServerCredits, purchaseServerCredits } from './services/server-proxy'
+import { streamChatViaServer, getServerCredits, purchaseServerCredits, startFreeSession, endFreeSession } from './services/server-proxy'
 import { getDeviceId } from './services/device-id'
 import { startLiveTranscription, stopLiveTranscription, listAudioDevices, parseAudioDevices, checkTranscriptionReady, runAudioTest } from './services/transcription'
 import { checkAudioSetup, enableSystemAudioCapture, disableSystemAudioCapture, recoverAudioFromCrash } from './services/audio-setup'
@@ -202,7 +202,28 @@ app.whenReady().then(() => {
       }
     }
 
-    return startLiveTranscription(mainWindow, captureDeviceId)
+    const result = startLiveTranscription(mainWindow, captureDeviceId)
+
+    // Start server-side session for timer enforcement
+    if (result && (result as any).success) {
+      const settings = getSettings()
+      if (!settings.openaiApiKey) {
+        const deviceId = getDeviceId()
+        startFreeSession(deviceId).then((session) => {
+          if (session) {
+            log.info(`Server session started: ${session.sessionId.slice(0, 8)} expires=${session.expiresAt}`)
+            mainWindow?.webContents.send('session:started', {
+              sessionId: session.sessionId,
+              maxSeconds: session.maxSeconds,
+              expiresAt: session.expiresAt,
+            })
+          }
+        }).catch(() => {})
+      }
+      trackAppEvent('session_start')
+    }
+
+    return result
   })
 
   // Pre-flight check for transcription readiness
@@ -237,6 +258,10 @@ app.whenReady().then(() => {
     stopLiveTranscription()
     // Restore audio output on macOS
     disableSystemAudioCapture()
+    // End server-side session
+    const deviceId = getDeviceId()
+    endFreeSession(deviceId).catch(() => {})
+    trackAppEvent('session_end')
   })
 
   ipcMain.handle('transcription:list-devices', async () => {

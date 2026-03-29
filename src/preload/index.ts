@@ -420,6 +420,18 @@ const api = {
   onStartRegionCapture: (callback: () => void) => {
     ipcRenderer.on('start-region-capture', () => callback())
     return () => ipcRenderer.removeAllListeners('start-region-capture')
+  },
+
+  // Server session events
+  onSessionStarted: (callback: (data: { sessionId: string; maxSeconds: number; expiresAt: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { sessionId: string; maxSeconds: number; expiresAt: string }) => callback(data)
+    ipcRenderer.on('session:started', handler)
+    return () => ipcRenderer.removeListener('session:started', handler)
+  },
+  onSessionRemainingSeconds: (callback: (data: { remainingSeconds: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { remainingSeconds: number }) => callback(data)
+    ipcRenderer.on('session:remaining-seconds', handler)
+    return () => ipcRenderer.removeListener('session:remaining-seconds', handler)
   }
 }
 

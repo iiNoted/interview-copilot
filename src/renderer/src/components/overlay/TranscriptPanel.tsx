@@ -232,7 +232,11 @@ export function TranscriptPanel(): React.JSX.Element {
     return () => clearInterval(interval)
   }, [isTranscribing, setCreditWarning])
 
-  const sessionRemaining = sessionMaxSeconds - sessionElapsedSeconds
+  // Use server expiry if available, otherwise local timer
+  const serverExpiresAt = useOverlayStore((s) => s.serverExpiresAt)
+  const sessionRemaining = serverExpiresAt
+    ? Math.max(0, Math.floor((serverExpiresAt - Date.now()) / 1000))
+    : sessionMaxSeconds - sessionElapsedSeconds
   const sessionWarning = sessionRemaining <= 300 && sessionRemaining > 0 // < 5 min left
 
   // Derive highlights per line from spawnedChats
@@ -365,6 +369,28 @@ RULES:
       }
     })
     return () => { cleanup() }
+  }, [])
+
+  // Listen for server session events
+  useEffect(() => {
+    const unsub1 = window.api.onSessionStarted((data) => {
+      useOverlayStore.getState().setServerSession(data.sessionId, data.expiresAt)
+    })
+    const unsub2 = window.api.onSessionRemainingSeconds((data) => {
+      // Sync server time with local timer — if server reports less time
+      // remaining than local, update the serverExpiresAt to stay in sync
+      const store = useOverlayStore.getState()
+      if (store.serverExpiresAt) {
+        const serverRemaining = data.remainingSeconds
+        const localRemaining = store.sessionMaxSeconds - store.sessionElapsedSeconds
+        if (serverRemaining < localRemaining - 5) {
+          // Server is authoritative — recalculate expiry from remaining seconds
+          const correctedExpiresAt = Date.now() + serverRemaining * 1000
+          useOverlayStore.setState({ serverExpiresAt: correctedExpiresAt })
+        }
+      }
+    })
+    return () => { unsub1(); unsub2() }
   }, [])
 
   // Check audio setup on mount
