@@ -1,5 +1,5 @@
 import { autoUpdater, type UpdateInfo, type ProgressInfo, type UpdateDownloadedEvent } from 'electron-updater'
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, session } from 'electron'
 import log from './logger'
 
 // ---------------------------------------------------------------------------
@@ -69,6 +69,18 @@ function classifyError(err: Error): { category: string; retryable: boolean } {
   // Server errors (5xx, rate limiting)
   if (msg.includes('502') || msg.includes('503') || msg.includes('504') || msg.includes('429')) {
     return { category: 'server', retryable: true }
+  }
+
+  // Certificate chain errors (Windows root cert not trusted) — retryable once
+  // as the netSession switch may resolve it on retry
+  if (
+    msg.includes('certificate') ||
+    msg.includes('cert_') ||
+    msg.includes('unable to get local issuer') ||
+    msg.includes('self signed') ||
+    msg.includes('trust provider')
+  ) {
+    return { category: 'certificate', retryable: true }
   }
 
   // Signature / checksum verification failures — NOT retryable (indicates a tampered or corrupt release)
@@ -194,6 +206,12 @@ export function setupAutoUpdater(window: BrowserWindow): void {
   // ---------------------------------------------------------------------------
   // Configuration
   // ---------------------------------------------------------------------------
+
+  // Use Chromium's network stack instead of Node.js's — this fixes
+  // "certificate chain terminated in untrusted root" errors on Windows
+  // because Chromium uses the OS certificate store while Node.js uses bundled certs
+  autoUpdater.httpExecutor = null as any // force re-init
+  ;(autoUpdater as any).netSession = session.defaultSession
 
   // Download updates automatically in the background
   autoUpdater.autoDownload = true
