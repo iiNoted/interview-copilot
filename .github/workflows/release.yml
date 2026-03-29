@@ -198,6 +198,103 @@ jobs:
             dist/*.exe.blockmap
           if-no-files-found: error
 
+  # ---------------------------------------------------------------------------
+  # Build AppX packages for Microsoft Store (unsigned — Microsoft signs them)
+  # ---------------------------------------------------------------------------
+  build-appx:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        product:
+          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot", identity: "SourceThread.InterviewCopilot" }
+          - { id: hireready, name: "HireReady", appId: "com.sourcethread.hireready", identity: "SourceThread.HireReady" }
+          - { id: techscreen, name: "TechScreen", appId: "com.sourcethread.techscreen", identity: "SourceThread.TechScreen" }
+          - { id: datahire, name: "DataHire", appId: "com.sourcethread.datahire", identity: "SourceThread.DataHire" }
+          - { id: cloudprep, name: "CloudPrep", appId: "com.sourcethread.cloudprep", identity: "SourceThread.CloudPrep" }
+          - { id: interviewghost, name: "InterviewGhost", appId: "com.sourcethread.interviewghost", identity: "SourceThread.InterviewGhost" }
+          - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews", identity: "SourceThread.SAPInterviews" }
+          - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck", identity: "SourceThread.PrepDeck" }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create empty extraResources dirs
+        run: |
+          if not exist pipeline-data mkdir pipeline-data
+          if not exist models mkdir models
+        shell: cmd
+
+      - name: Generate AppX config
+        shell: bash
+        run: |
+          cat > electron-builder.product.yml << 'CONF'
+          appId: ${{ matrix.product.appId }}
+          productName: "${{ matrix.product.name }}"
+          copyright: "Copyright © 2026 SourceThread"
+          directories:
+            buildResources: build
+          files:
+            - '!**/.vscode/*'
+            - '!src/*'
+            - '!electron.vite.config.{js,ts,mjs,cjs}'
+            - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+            - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+            - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+          asarUnpack:
+            - resources/**
+          extraResources:
+            - from: "pipeline-data/"
+              to: "pipeline-data"
+              filter:
+                - "*/articles/*.md"
+                - "*/skill/skill_scaffold.json"
+            - from: "models/"
+              to: "models"
+              filter:
+                - "*.bin"
+          win:
+            executableName: ${{ matrix.product.id }}
+            target:
+              - target: appx
+                arch: [x64]
+            forceCodeSigning: false
+          appx:
+            identityName: ${{ matrix.product.identity }}
+            publisher: "CN=0CDA11DF-D1DB-4A54-9BA0-432EED1E0924"
+            publisherDisplayName: "Source Thread LLC"
+            applicationId: ${{ matrix.product.id }}
+            displayName: "${{ matrix.product.name }}"
+            artifactName: ${{ matrix.product.id }}-${version}.${ext}
+            languages:
+              - en-US
+          npmRebuild: false
+          publish:
+            provider: github
+            owner: iiNoted
+            repo: interview-copilot
+            releaseType: release
+          CONF
+
+      - name: Build & package AppX
+        run: npm run build && npx electron-builder --config electron-builder.product.yml --win --publish never
+
+      - name: Upload AppX artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: appx-${{ matrix.product.id }}
+          path: dist/*.appx
+          if-no-files-found: error
+
   build-linux:
     runs-on: ubuntu-latest
     strategy:
@@ -287,7 +384,7 @@ jobs:
   # ---------------------------------------------------------------------------
   release:
     runs-on: ubuntu-latest
-    needs: [build-mac, build-win, build-linux]
+    needs: [build-mac, build-win, build-appx, build-linux]
     if: always() && (needs.build-mac.result == 'success' || needs.build-win.result == 'success' || needs.build-linux.result == 'success')
     steps:
       - name: Checkout
@@ -374,6 +471,7 @@ jobs:
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.exe
+            artifacts/**/*.appx
             artifacts/**/*.AppImage
             artifacts/**/*.deb
             artifacts/latest.yml
@@ -387,8 +485,8 @@ jobs:
   # ---------------------------------------------------------------------------
   publish-store:
     runs-on: windows-latest
-    needs: [build-win]
-    if: needs.build-win.result == 'success' && !contains(github.ref_name, '-alpha')
+    needs: [build-appx]
+    if: needs.build-appx.result == 'success' && !contains(github.ref_name, '-alpha')
     strategy:
       fail-fast: false
       matrix:
@@ -402,10 +500,10 @@ jobs:
           - { id: sapinterviews, storeId: "PLACEHOLDER_SAPINTERVIEWS" }
           - { id: prepdeck, storeId: "PLACEHOLDER_PREPDECK" }
     steps:
-      - name: Download Windows artifacts
+      - name: Download AppX artifacts
         uses: actions/download-artifact@v4
         with:
-          name: win-${{ matrix.product.id }}
+          name: appx-${{ matrix.product.id }}
           path: artifacts
 
       - name: List AppX files
