@@ -109,7 +109,7 @@ jobs:
       fail-fast: false
       matrix:
         product:
-          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot", identity: "SourceThread.InterviewCopilot" }
+          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot", identity: "SourceThread.InterviewCopilotAi" }
           - { id: hireready, name: "HireReady", appId: "com.sourcethread.hireready", identity: "SourceThread.HireReady" }
           - { id: techscreen, name: "TechScreen", appId: "com.sourcethread.techscreen", identity: "SourceThread.TechScreen" }
           - { id: datahire, name: "DataHire", appId: "com.sourcethread.datahire", identity: "SourceThread.DataHire" }
@@ -207,7 +207,7 @@ jobs:
       fail-fast: false
       matrix:
         product:
-          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot", identity: "SourceThread.InterviewCopilot" }
+          - { id: copilot, name: "Interview Copilot", appId: "com.sourcethread.interview-copilot", identity: "SourceThread.InterviewCopilotAi" }
           - { id: hireready, name: "HireReady", appId: "com.sourcethread.hireready", identity: "SourceThread.HireReady" }
           - { id: techscreen, name: "TechScreen", appId: "com.sourcethread.techscreen", identity: "SourceThread.TechScreen" }
           - { id: datahire, name: "DataHire", appId: "com.sourcethread.datahire", identity: "SourceThread.DataHire" }
@@ -271,7 +271,7 @@ jobs:
           appx:
             identityName: ${{ matrix.product.identity }}
             publisher: "CN=0CDA11DF-D1DB-4A54-9BA0-432EED1E0924"
-            publisherDisplayName: "Source Thread LLC"
+            publisherDisplayName: "SourceThread"
             applicationId: ${{ matrix.product.id }}
             displayName: "${{ matrix.product.name }}"
             artifactName: ${{ matrix.product.id }}-${version}.${ext}
@@ -491,7 +491,7 @@ jobs:
       fail-fast: false
       matrix:
         product:
-          - { id: copilot, storeId: "PLACEHOLDER_COPILOT" }
+          - { id: copilot, storeId: "9MTCPJ47W0WR" }
           - { id: hireready, storeId: "PLACEHOLDER_HIREREADY" }
           - { id: techscreen, storeId: "PLACEHOLDER_TECHSCREEN" }
           - { id: datahire, storeId: "PLACEHOLDER_DATAHIRE" }
