@@ -467,7 +467,7 @@ jobs:
   publish-store:
     runs-on: windows-latest
     needs: [build-appx]
-    if: needs.build-appx.result == 'success' && !contains(github.ref_name, '-alpha')
+    if: needs.build-appx.result == 'success' && !contains(github.ref_name, '-alpha') && vars.ENABLE_STORE_PUBLISH == 'true'
     strategy:
       fail-fast: false
       matrix:
