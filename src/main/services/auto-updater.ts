@@ -210,7 +210,6 @@ export function setupAutoUpdater(window: BrowserWindow): void {
   // Use Chromium's network stack instead of Node.js's — this fixes
   // "certificate chain terminated in untrusted root" errors on Windows
   // because Chromium uses the OS certificate store while Node.js uses bundled certs
-  autoUpdater.httpExecutor = null as any // force re-init
   ;(autoUpdater as any).netSession = session.defaultSession
 
   // Download updates automatically in the background
