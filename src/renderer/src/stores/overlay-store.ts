@@ -52,6 +52,15 @@ interface OverlayState {
   showSettings: boolean
   selectedAudioDeviceId: number
 
+  // Session timer (60 min cap)
+  sessionStartedAt: number | null
+  sessionElapsedSeconds: number
+  sessionMaxSeconds: number
+  sessionExpired: boolean
+
+  // Credit warning (show when < 20% remaining)
+  creditWarning: 'none' | 'low' | 'exhausted'
+
   // AI sidebar state
   aiBackend: 'openai'
   detectedQuestions: DetectedQuestion[]
@@ -76,6 +85,10 @@ interface OverlayState {
   setMode: (mode: 'minimized' | 'expanded') => void
   setModel: (model: string) => void
   setTranscribing: (val: boolean) => void
+  startSession: () => void
+  endSession: () => void
+  tickSession: () => void
+  setCreditWarning: (level: 'none' | 'low' | 'exhausted') => void
   toggleWebSearch: () => void
   toggleSourcethread: () => void
   setAiBackend: (backend: 'openai') => void
@@ -137,6 +150,11 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   jobFilename: null,
   showSettings: false,
   selectedAudioDeviceId: 0,
+  sessionStartedAt: null,
+  sessionElapsedSeconds: 0,
+  sessionMaxSeconds: 3600, // 60 minutes
+  sessionExpired: false,
+  creditWarning: 'none',
   aiBackend: 'openai',
   detectedQuestions: [],
   processedTranscriptIndices: new Set(),
@@ -148,6 +166,15 @@ export const useOverlayStore = create<OverlayState>((set) => ({
   setMode: (mode) => set({ mode }),
   setModel: (model) => set({ currentModel: model }),
   setTranscribing: (val) => set({ isTranscribing: val }),
+  startSession: () => set({ sessionStartedAt: Date.now(), sessionElapsedSeconds: 0, sessionExpired: false }),
+  endSession: () => set({ sessionStartedAt: null, sessionElapsedSeconds: 0 }),
+  tickSession: () => set((s) => {
+    if (!s.sessionStartedAt) return s
+    const elapsed = Math.floor((Date.now() - s.sessionStartedAt) / 1000)
+    const expired = elapsed >= s.sessionMaxSeconds
+    return { sessionElapsedSeconds: elapsed, sessionExpired: expired }
+  }),
+  setCreditWarning: (level) => set({ creditWarning: level }),
   toggleWebSearch: () => set((s) => ({ webSearchEnabled: !s.webSearchEnabled })),
   toggleSourcethread: () => set((s) => ({ sourcethreadEnabled: !s.sourcethreadEnabled })),
   setAiBackend: (backend) => set({ aiBackend: backend }),

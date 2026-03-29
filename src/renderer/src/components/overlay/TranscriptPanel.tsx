@@ -2,7 +2,7 @@ import { useOverlayStore, type TextHighlight, type SpawnedChat } from '@renderer
 import { useT } from '@renderer/i18n/context'
 import { sanitizePromptText } from '@renderer/lib/prompt-utils'
 import { ScrollArea } from '@renderer/components/ui/scroll-area'
-import { Mic, MicOff, AlertCircle, Trash2, CheckCircle2, X, Save } from 'lucide-react'
+import { Mic, MicOff, AlertCircle, Trash2, CheckCircle2, X, Save, Clock, AlertTriangle } from 'lucide-react'
 import { Button } from '@renderer/components/ui/button'
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 
@@ -176,13 +176,64 @@ function EditableTranscriptLine({
   )
 }
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
 export function TranscriptPanel(): React.JSX.Element {
   const { t } = useT()
-  const { transcript, isTranscribing, setTranscribing, addTranscriptLine, selectedAudioDeviceId, spawnedChats } = useOverlayStore()
+  const {
+    transcript, isTranscribing, setTranscribing, addTranscriptLine, selectedAudioDeviceId, spawnedChats,
+    sessionStartedAt, sessionElapsedSeconds, sessionMaxSeconds, sessionExpired,
+    startSession, endSession, tickSession,
+    creditWarning, setCreditWarning
+  } = useOverlayStore()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [audioStatus, setAudioStatus] = useState<AudioSetupStatus | null>(null)
   const [saved, setSaved] = useState(false)
+
+  // Session timer — tick every second while transcribing
+  useEffect(() => {
+    if (!isTranscribing || !sessionStartedAt) return
+    const interval = setInterval(() => {
+      tickSession()
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isTranscribing, sessionStartedAt, tickSession])
+
+  // Auto-stop when session expires
+  useEffect(() => {
+    if (sessionExpired && isTranscribing) {
+      handleStop()
+      addTranscriptLine('[Session time limit reached — 60 minutes]')
+    }
+  }, [sessionExpired]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check credit level periodically while transcribing
+  useEffect(() => {
+    if (!isTranscribing) return
+    const checkCredits = async (): Promise<void> => {
+      try {
+        const c = await window.api.getCredits()
+        if (c.balanceUsd <= 0) {
+          setCreditWarning('exhausted')
+        } else if (c.balanceUsd < 0.10) { // < 20% of $0.50
+          setCreditWarning('low')
+        } else {
+          setCreditWarning('none')
+        }
+      } catch { /* ignore */ }
+    }
+    checkCredits()
+    const interval = setInterval(checkCredits, 30000) // check every 30s
+    return () => clearInterval(interval)
+  }, [isTranscribing, setCreditWarning])
+
+  const sessionRemaining = sessionMaxSeconds - sessionElapsedSeconds
+  const sessionWarning = sessionRemaining <= 300 && sessionRemaining > 0 // < 5 min left
 
   // Derive highlights per line from spawnedChats
   const highlightsByLine = useMemo(() => {
@@ -326,12 +377,15 @@ RULES:
     await window.api.requestMicPermission()
     await window.api.startTranscription(selectedAudioDeviceId)
     setTranscribing(true)
+    startSession()
+    setCreditWarning('none')
     addTranscriptLine(t('transcript.started'))
   }
 
   async function handleStop(): Promise<void> {
     await window.api.stopTranscription()
     setTranscribing(false)
+    endSession()
     addTranscriptLine(t('transcript.stopped'))
     // Auto-save on stop
     const state = useOverlayStore.getState()
@@ -423,6 +477,20 @@ RULES:
         </div>
       </ScrollArea>
 
+      {/* Credit/session warnings */}
+      {isTranscribing && creditWarning === 'low' && (
+        <div className="mx-2 mb-1 px-3 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center gap-2 text-xs text-yellow-200">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>Running low on credits — add your API key in Settings for unlimited use</span>
+        </div>
+      )}
+      {creditWarning === 'exhausted' && (
+        <div className="mx-2 mb-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-xs text-red-300">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span>Credits exhausted — add your API key in Settings or purchase a refill</span>
+        </div>
+      )}
+
       <div className="border-t border-white/5 p-2 flex items-center justify-center gap-2">
         {transcript.length > 0 && !isTranscribing && (
           <>
@@ -445,6 +513,14 @@ RULES:
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </>
+        )}
+
+        {/* Session timer */}
+        {isTranscribing && sessionStartedAt && (
+          <div className={`flex items-center gap-1 text-xs font-mono ${sessionWarning ? 'text-red-400 animate-pulse' : 'text-white/40'}`}>
+            <Clock className="h-3 w-3" />
+            <span>{formatTime(sessionRemaining > 0 ? sessionRemaining : 0)}</span>
+          </div>
         )}
 
         <Button
