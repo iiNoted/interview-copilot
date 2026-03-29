@@ -15,6 +15,7 @@ jobs:
   build-mac:
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         product:
           - { id: copilot, name: "Interview Copilot Ai", appId: "com.sourcethread.interview-copilot" }
@@ -26,7 +27,13 @@ jobs:
           - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews" }
           - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck" }
     env:
-      CSC_IDENTITY_AUTO_DISCOVERY: false
+      # macOS signing: use cert from secrets when available, otherwise build unsigned
+      CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+      # Notarization: only when Apple credentials are configured
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +52,12 @@ jobs:
 
       - name: Generate product config
         run: |
-          cat > electron-builder.product.yml << 'CONF'
+          # Determine notarize setting based on whether Apple credentials are available
+          NOTARIZE="false"
+          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
+            NOTARIZE="true"
+          fi
+          cat > electron-builder.product.yml << CONF
           appId: ${{ matrix.product.appId }}
           productName: "${{ matrix.product.name }}"
           copyright: "Copyright © 2026 SourceThread"
@@ -80,9 +92,9 @@ jobs:
             extendInfo:
               - NSMicrophoneUsageDescription: "${{ matrix.product.name }} needs microphone access for real-time interview transcription."
               - LSUIElement: false
-            notarize: false
+            notarize: ${NOTARIZE}
           dmg:
-            artifactName: ${{ matrix.product.id }}-${version}.${ext}
+            artifactName: ${{ matrix.product.id }}-\${version}.\${ext}
           npmRebuild: false
           publish:
             provider: github
@@ -118,7 +130,7 @@ jobs:
           - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews", identity: "SourceThread.SAPInterviews" }
           - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck", identity: "SourceThread.PrepDeck" }
     env:
-      # Use signing cert when available, otherwise build unsigned
+      # Windows code signing
       CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
     steps:
@@ -298,6 +310,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         product:
           - { id: copilot, name: "Interview Copilot Ai", appId: "com.sourcethread.interview-copilot" }
@@ -380,7 +393,7 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # Create GitHub Release and attach all artifacts
+  # Create GitHub Release and attach all artifacts + per-brand update manifests
   # ---------------------------------------------------------------------------
   release:
     runs-on: ubuntu-latest
@@ -398,48 +411,67 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f | sort
 
-      - name: Generate auto-update manifests
+      - name: Generate per-brand auto-update manifests
         run: |
           VERSION=$(node -e "console.log(require('./package.json').version)")
           DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+          PRODUCTS="copilot hireready techscreen datahire cloudprep interviewghost sapinterviews prepdeck"
 
-          # Windows: latest.yml (from copilot NSIS exe)
-          WIN_EXE=$(find artifacts -name "copilot-*-setup.exe" | head -1)
-          if [ -n "$WIN_EXE" ]; then
-            WIN_SHA=$(sha512sum "$WIN_EXE" | awk '{print $1}' | xxd -r -p | base64 -w0)
-            WIN_SIZE=$(stat -c%s "$WIN_EXE")
-            WIN_NAME=$(basename "$WIN_EXE")
+          # Helper: generate a manifest YAML for one platform+product
+          gen_manifest() {
+            local FILE="$1" OUT="$2"
+            if [ ! -f "$FILE" ]; then
+              echo "WARNING: $FILE not found, skipping manifest $OUT"
+              return 1
+            fi
+            local SHA=$(sha512sum "$FILE" | awk '{print $1}' | xxd -r -p | base64 -w0)
+            local SIZE=$(stat -c%s "$FILE")
+            local NAME=$(basename "$FILE")
             printf "version: %s\nfiles:\n  - url: %s\n    sha512: %s\n    size: %s\npath: %s\nsha512: %s\nreleaseDate: '%s'\n" \
-              "$VERSION" "$WIN_NAME" "$WIN_SHA" "$WIN_SIZE" "$WIN_NAME" "$WIN_SHA" "$DATE" \
-              > artifacts/latest.yml
-          fi
+              "$VERSION" "$NAME" "$SHA" "$SIZE" "$NAME" "$SHA" "$DATE" > "$OUT"
+            echo "Generated: $OUT -> $NAME ($SIZE bytes)"
+          }
 
-          # macOS: latest-mac.yml (from copilot DMG)
-          MAC_DMG=$(find artifacts -name "copilot-*.dmg" | head -1)
-          if [ -n "$MAC_DMG" ]; then
-            MAC_SHA=$(sha512sum "$MAC_DMG" | awk '{print $1}' | xxd -r -p | base64 -w0)
-            MAC_SIZE=$(stat -c%s "$MAC_DMG")
-            MAC_NAME=$(basename "$MAC_DMG")
-            printf "version: %s\nfiles:\n  - url: %s\n    sha512: %s\n    size: %s\npath: %s\nsha512: %s\nreleaseDate: '%s'\n" \
-              "$VERSION" "$MAC_NAME" "$MAC_SHA" "$MAC_SIZE" "$MAC_NAME" "$MAC_SHA" "$DATE" \
-              > artifacts/latest-mac.yml
-          fi
+          # Generate manifests for each brand
+          for PID in $PRODUCTS; do
+            # Windows: latest.yml
+            WIN_EXE="artifacts/win-${PID}/${PID}-${VERSION}-setup.exe"
+            gen_manifest "$WIN_EXE" "artifacts/${PID}-latest.yml" || true
 
-          # Linux: latest-linux.yml (from copilot AppImage)
-          LIN_AI=$(find artifacts -name "copilot-*.AppImage" | head -1)
-          if [ -n "$LIN_AI" ]; then
-            LIN_SHA=$(sha512sum "$LIN_AI" | awk '{print $1}' | xxd -r -p | base64 -w0)
-            LIN_SIZE=$(stat -c%s "$LIN_AI")
-            LIN_NAME=$(basename "$LIN_AI")
-            printf "version: %s\nfiles:\n  - url: %s\n    sha512: %s\n    size: %s\npath: %s\nsha512: %s\nreleaseDate: '%s'\n" \
-              "$VERSION" "$LIN_NAME" "$LIN_SHA" "$LIN_SIZE" "$LIN_NAME" "$LIN_SHA" "$DATE" \
-              > artifacts/latest-linux.yml
-          fi
+            # macOS: latest-mac.yml
+            MAC_DMG="artifacts/mac-${PID}/${PID}-${VERSION}.dmg"
+            gen_manifest "$MAC_DMG" "artifacts/${PID}-latest-mac.yml" || true
 
-          echo "Generated update manifests:"
-          cat artifacts/latest.yml 2>/dev/null || true
-          cat artifacts/latest-mac.yml 2>/dev/null || true
-          cat artifacts/latest-linux.yml 2>/dev/null || true
+            # Linux: latest-linux.yml
+            LIN_AI="artifacts/linux-${PID}/${PID}-${VERSION}.AppImage"
+            gen_manifest "$LIN_AI" "artifacts/${PID}-latest-linux.yml" || true
+          done
+
+          # Also generate the default (non-prefixed) manifests for copilot brand
+          # These are what the auto-updater looks for by default
+          [ -f "artifacts/copilot-latest.yml" ] && cp "artifacts/copilot-latest.yml" "artifacts/latest.yml"
+          [ -f "artifacts/copilot-latest-mac.yml" ] && cp "artifacts/copilot-latest-mac.yml" "artifacts/latest-mac.yml"
+          [ -f "artifacts/copilot-latest-linux.yml" ] && cp "artifacts/copilot-latest-linux.yml" "artifacts/latest-linux.yml"
+
+          echo ""
+          echo "=== Generated manifests ==="
+          for f in artifacts/*.yml artifacts/*-latest*.yml; do
+            [ -f "$f" ] && echo "--- $f ---" && cat "$f" && echo ""
+          done
+
+      - name: Validate required artifacts exist
+        run: |
+          ERRORS=0
+          # At minimum, copilot brand should have all platforms
+          for f in artifacts/latest.yml artifacts/latest-mac.yml artifacts/latest-linux.yml; do
+            if [ ! -f "$f" ]; then
+              echo "ERROR: Missing required manifest: $f"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "WARNING: $ERRORS manifests missing — release will proceed but auto-update may not work for all platforms"
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
