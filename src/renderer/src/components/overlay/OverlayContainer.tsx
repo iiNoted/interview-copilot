@@ -18,7 +18,7 @@ import { ChevronDown, Zap } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 
 const MODELS = [
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+  { id: 'gpt-5.4-mini-2026-03-17', label: 'GPT-5.4 Mini' }
 ]
 
 export function OverlayContainer(): React.JSX.Element {

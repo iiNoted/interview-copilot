@@ -9,7 +9,7 @@ import { Button } from '@renderer/components/ui/button'
 import { ChevronDown, Zap } from 'lucide-react'
 
 const MODELS = [
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini' }
+  { id: 'gpt-5.4-mini-2026-03-17', label: 'GPT-5.4 Mini' }
 ]
 
 export function StatusBar(): React.JSX.Element {

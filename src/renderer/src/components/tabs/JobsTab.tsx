@@ -169,7 +169,7 @@ Be concise — max 150 words. Use plain language, not textbook definitions.`
       }
     })
 
-    window.api.queryAI({ requestId, messages, model: 'gpt-4o-mini' })
+    window.api.queryAI({ requestId, messages, model: 'gpt-5.4-mini-2026-03-17' })
 
     return () => {
       removeChunk()

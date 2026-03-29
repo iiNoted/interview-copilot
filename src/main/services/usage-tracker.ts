@@ -28,7 +28,7 @@ interface UsageData {
 
 // OpenAI pricing per 1M tokens (as of 2026)
 const PRICING: Record<string, { input: number; output: number }> = {
-  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-5.4-mini-2026-03-17': { input: 0.75, output: 4.50 },
   'gpt-4o': { input: 2.50, output: 10.00 },
   'gpt-4.1': { input: 2.00, output: 8.00 }
 }
@@ -59,7 +59,7 @@ function calculateCost(
   inputTokens: number,
   outputTokens: number
 ): { costUsd: number; chargedUsd: number } {
-  const pricing = PRICING[model] || PRICING['gpt-4o-mini']
+  const pricing = PRICING[model] || PRICING['gpt-5.4-mini-2026-03-17']
   const costUsd =
     (inputTokens / 1_000_000) * pricing.input + (outputTokens / 1_000_000) * pricing.output
   return { costUsd, chargedUsd: costUsd * MARKUP }

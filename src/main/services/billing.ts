@@ -5,9 +5,9 @@ import { getAuthUser } from './auth-store'
 
 // Pricing: 4x the actual API cost
 // OpenAI pricing per 1M tokens:
-//   GPT-4o-mini: $0.15 input / $0.60 output → We charge: $0.60 input / $2.40 output
-//   GPT-4o:      $2.50 input / $10 output   → We charge: $10 input / $40 output
-//   GPT-4.1:     $2.00 input / $8 output    → We charge: $8 input / $32 output
+//   GPT-5.4-mini: $0.75 input / $4.50 output → We charge: $3.00 input / $18.00 output
+//   GPT-4o:       $2.50 input / $10 output   → We charge: $10 input / $40 output
+//   GPT-4.1:      $2.00 input / $8 output    → We charge: $8 input / $32 output
 //
 // 1 credit = $0.01 (1 cent)
 // Stripe webhook handled by SourceThread server at copilot.sourcethread.com
@@ -83,11 +83,11 @@ export function calculateCredits(
   outputTokens: number
 ): number {
   const pricing: Record<string, { input: number; output: number }> = {
-    'gpt-4o-mini': { input: 0.15, output: 0.60 },
+    'gpt-5.4-mini-2026-03-17': { input: 0.75, output: 4.50 },
     'gpt-4o': { input: 2.50, output: 10.00 },
     'gpt-4.1': { input: 2.00, output: 8.00 }
   }
-  const p = pricing[model] || pricing['gpt-4o-mini']
+  const p = pricing[model] || pricing['gpt-5.4-mini-2026-03-17']
   const apiCostUsd =
     (inputTokens / 1_000_000) * p.input + (outputTokens / 1_000_000) * p.output
   const chargedUsd = apiCostUsd * MARKUP

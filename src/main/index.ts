@@ -21,7 +21,8 @@ import { createMainWindow } from './windows/main-window'
 import { registerHotkeys, unregisterHotkeys } from './services/hotkeys'
 import { createTray } from './services/tray'
 import { streamChatOpenAI } from './services/openai-client'
-import { getCredits, hasCredits, getHouseApiKey, deductCredits, purchaseCredits, stopCreditPolling } from './services/credit-store'
+import { streamChatViaServer, getServerCredits, purchaseServerCredits } from './services/server-proxy'
+import { getDeviceId } from './services/device-id'
 import { startLiveTranscription, stopLiveTranscription, listAudioDevices, parseAudioDevices } from './services/transcription'
 import { checkAudioSetup, enableSystemAudioCapture, disableSystemAudioCapture, recoverAudioFromCrash } from './services/audio-setup'
 import { saveResume, getResume, clearResume } from './services/resume-store'
@@ -44,7 +45,7 @@ import {
 import { getCategories, getCategoryDetail, getArticleContent, rankCategoriesByResume, rankCategoriesByContext, getResumeDataPack, getQualificationsDb, getQualificationArticleSnippet } from './services/pipeline-loader'
 import { searchJobs, getJobDetail } from './services/job-search'
 import { execSync } from 'child_process'
-import { setupAutoUpdater } from './services/auto-updater'
+import { setupAutoUpdater, teardownAutoUpdater } from './services/auto-updater'
 import { isWhisperProvisioned, isModelProvisioned, provisionAll } from './services/whisper-provisioner'
 
 let mainWindow: BrowserWindow | null = null
@@ -151,30 +152,19 @@ app.whenReady().then(() => {
       if (!mainWindow) return
       const settings = getSettings()
       try {
-        // Priority: user's own key > house key with credits
+        // Priority: user's own key > server proxy
         const userKey = settings.openaiApiKey
-        const houseKey = getHouseApiKey()
-        const usingHouseKey = !userKey && !!houseKey && hasCredits()
-
-        const apiKey = userKey || (usingHouseKey ? houseKey : null)
-        if (!apiKey) {
-          const credits = getCredits()
-          const msg = credits.balanceUsd <= 0
-            ? 'Free credits exhausted. Go to Settings and add your OpenAI API key to continue.'
-            : 'No API key configured. Go to Settings and enter your OpenAI API key.'
-          mainWindow.webContents.send('ai:error', { id: requestId, error: msg })
-          return
+        if (userKey) {
+          // Direct to OpenAI with user's key
+          log.info(`AI query [${requestId}] model=${model} source=user-key`)
+          const usage = await streamChatOpenAI(mainWindow, requestId, messages, model, userKey)
+          trackQuery(model, usage.inputTokens, usage.outputTokens)
+        } else {
+          // Route through server proxy (free credits)
+          const deviceId = getDeviceId()
+          log.info(`AI query [${requestId}] model=${model} source=server-proxy device=${deviceId.slice(0, 8)}`)
+          await streamChatViaServer(mainWindow, requestId, messages, model, deviceId)
         }
-
-        log.info(`AI query [${requestId}] model=${model} source=${usingHouseKey ? 'house' : 'user'}`)
-        const usage = await streamChatOpenAI(mainWindow, requestId, messages, model, apiKey)
-
-        // Deduct credits if using house key
-        if (usingHouseKey && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
-          deductCredits(model, usage.inputTokens, usage.outputTokens)
-        }
-
-        trackQuery(model, usage.inputTokens, usage.outputTokens)
       } catch (err: any) {
         log.error(`AI query failed [${requestId}]:`, err.message)
         mainWindow.webContents.send('ai:error', {
@@ -357,17 +347,24 @@ app.whenReady().then(() => {
     return app.getVersion()
   })
 
-  // Credits
-  ipcMain.handle('credits:get', () => {
-    return getCredits()
+  // Credits (server-managed)
+  ipcMain.handle('credits:get', async () => {
+    const data = await getServerCredits(getDeviceId())
+    if (!data) return { balanceUsd: 0.50, totalUsedUsd: 0, queriesUsed: 0, purchaseCount: 0 }
+    return {
+      balanceUsd: data.balanceCents / 100,
+      totalUsedUsd: (data as any).totalUsedCents ? (data as any).totalUsedCents / 100 : 0,
+      queriesUsed: data.queriesUsed,
+      purchaseCount: data.purchaseCount
+    }
   })
 
   ipcMain.handle('credits:has-house-key', () => {
-    return !!getHouseApiKey()
+    return true // server proxy always available as fallback
   })
 
   ipcMain.handle('credits:purchase', async (_event, email: string) => {
-    return purchaseCredits(email)
+    return purchaseServerCredits(getDeviceId(), email)
   })
 
   // Settings
@@ -578,7 +575,7 @@ app.whenReady().then(() => {
       audioDetails: audioSetup,
       resumeUploaded: !!resume,
       jobUploaded: !!job,
-      apiConfigured: !!settings.openaiApiKey || (!!getHouseApiKey() && hasCredits()),
+      apiConfigured: !!settings.openaiApiKey || true, // server proxy always available as fallback
       onboardingComplete: settings.onboardingComplete || false
     }
   })
@@ -663,8 +660,8 @@ app.on('will-quit', () => {
   disableSystemAudioCapture()
   stopWebhookServer()
   stopFlatPolling()
-  stopCreditPolling()
   stopRemoteViewServer()
+  teardownAutoUpdater()
 })
 
 // Crash recovery: restore audio output if the app crashes or is force-killed.

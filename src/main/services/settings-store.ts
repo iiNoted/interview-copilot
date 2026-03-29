@@ -17,7 +17,7 @@ const store = new Store<{ settings: AppSettings }>({
     settings: {
       aiBackend: 'openai',
       openaiApiKey: null,
-      preferredModel: 'gpt-4o-mini',
+      preferredModel: 'gpt-5.4-mini-2026-03-17',
       stripeCustomerId: null,
       onboardingComplete: false,
       remoteViewEnabled: false,

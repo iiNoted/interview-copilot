@@ -27,7 +27,6 @@ jobs:
           - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck" }
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: false
-      HOUSE_OPENAI_KEY: ${{ secrets.HOUSE_OPENAI_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -122,7 +121,6 @@ jobs:
       # Use signing cert when available, otherwise build unsigned
       CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
       CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-      HOUSE_OPENAI_KEY: ${{ secrets.HOUSE_OPENAI_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -217,8 +215,6 @@ jobs:
           - { id: interviewghost, name: "InterviewGhost", appId: "com.sourcethread.interviewghost", identity: "SourceThread.InterviewGhost" }
           - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews", identity: "SourceThread.SAPInterviews" }
           - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck", identity: "SourceThread.PrepDeck" }
-    env:
-      HOUSE_OPENAI_KEY: ${{ secrets.HOUSE_OPENAI_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -312,8 +308,6 @@ jobs:
           - { id: interviewghost, name: "InterviewGhost", appId: "com.sourcethread.interviewghost" }
           - { id: sapinterviews, name: "SAPInterviews", appId: "com.sourcethread.sapinterviews" }
           - { id: prepdeck, name: "PrepDeck", appId: "com.sourcethread.prepdeck" }
-    env:
-      HOUSE_OPENAI_KEY: ${{ secrets.HOUSE_OPENAI_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

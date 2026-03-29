@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 
 const MODELS = [
-  { id: 'gpt-4o-mini', label: 'GPT-4o Mini', desc: 'Fast & cheap', available: true },
+  { id: 'gpt-5.4-mini-2026-03-17', label: 'GPT-5.4 Mini', desc: 'Fast & cheap', available: true },
   { id: 'gpt-4o', label: 'GPT-4o', desc: 'Balanced — coming soon', available: false },
   { id: 'gpt-4.1', label: 'GPT-4.1', desc: 'Best — coming soon', available: false }
 ]
@@ -58,7 +58,6 @@ export function SettingsPanel(): React.JSX.Element {
 
   const [openaiKey, setOpenaiKey] = useState('')
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
-  const [billingEmail, setBillingEmail] = useState('')
   const [usage, setUsage] = useState<{
     queries: number
     totalChargedUsd: number
@@ -239,10 +238,6 @@ export function SettingsPanel(): React.JSX.Element {
       setJob(result.text, result.filename)
       setJobMode('choose')
     }
-  }
-
-  async function handleCheckout(): Promise<void> {
-    await window.api.createCheckoutSession(billingEmail || undefined)
   }
 
   async function handleManageBilling(): Promise<void> {
@@ -825,12 +820,12 @@ export function SettingsPanel(): React.JSX.Element {
           ) : (
             <>
               <p className="text-xs text-white/50">
-                AI powered by GPT-4o Mini. Free credits included, or add your own key.
+                AI powered by GPT-5.4 Mini. Free credits included, or add your own key.
               </p>
               <div className="bg-white/5 rounded-lg px-3 py-2.5 space-y-1">
                 <div className="flex justify-between text-xs">
-                  <span className="text-white/50">GPT-4o Mini</span>
-                  <span className="text-white/70">~$0.002/response</span>
+                  <span className="text-white/50">GPT-5.4 Mini</span>
+                  <span className="text-white/70">~$0.005/response</span>
                 </div>
               </div>
             </>

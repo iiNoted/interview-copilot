@@ -9,7 +9,7 @@ export async function streamChatOpenAI(
   window: BrowserWindow,
   requestId: string,
   messages: Array<{ role: string; content: string }>,
-  model: string = 'gpt-4o-mini',
+  model: string = 'gpt-5.4-mini-2026-03-17',
   apiKey: string
 ): Promise<StreamResult> {
   let inputTokens = 0

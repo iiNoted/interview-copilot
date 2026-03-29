@@ -148,7 +148,7 @@ const api = {
   },
 
   // Credits
-  getCredits: (): Promise<{ balanceUsd: number; totalUsedUsd: number; queriesUsed: number }> => {
+  getCredits: (): Promise<{ balanceUsd: number; totalUsedUsd: number; queriesUsed: number; purchaseCount: number }> => {
     return ipcRenderer.invoke('credits:get')
   },
   hasHouseKey: (): Promise<boolean> => {
@@ -365,8 +365,8 @@ const api = {
   getUpdateStatus: (): Promise<{ status: string; version: string | null; error: string | null }> => {
     return ipcRenderer.invoke('updater:get-status')
   },
-  onUpdateStatus: (callback: (data: { status: string; version?: string; error?: string }) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { status: string; version?: string; error?: string }) => callback(data)
+  onUpdateStatus: (callback: (data: { status: string; version?: string; error?: string; category?: string; progress?: { percent: number; transferred: number; total: number; bytesPerSecond: number } }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { status: string; version?: string; error?: string; category?: string; progress?: { percent: number; transferred: number; total: number; bytesPerSecond: number } }) => callback(data)
     ipcRenderer.on('updater:status', handler)
     return () => ipcRenderer.removeListener('updater:status', handler)
   },
@@ -377,6 +377,11 @@ const api = {
     const handler = (_event: Electron.IpcRendererEvent, data: { version: string }) => callback(data)
     ipcRenderer.on('updater:update-required', handler)
     return () => ipcRenderer.removeListener('updater:update-required', handler)
+  },
+  onUpdateReady: (callback: (data: { version: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { version: string }) => callback(data)
+    ipcRenderer.on('updater:update-ready', handler)
+    return () => ipcRenderer.removeListener('updater:update-ready', handler)
   },
 
   // Terms acceptance

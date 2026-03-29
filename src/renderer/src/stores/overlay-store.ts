@@ -126,7 +126,7 @@ interface OverlayState {
 export const useOverlayStore = create<OverlayState>((set) => ({
   mode: 'expanded',
   isTranscribing: false,
-  currentModel: 'gpt-4o-mini',
+  currentModel: 'gpt-5.4-mini-2026-03-17',
   messages: [],
   transcript: [],
   webSearchEnabled: false,

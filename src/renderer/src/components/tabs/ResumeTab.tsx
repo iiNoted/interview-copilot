@@ -222,7 +222,7 @@ Generate the resume now.`
     ]
 
     try {
-      await window.api.queryAI({ requestId: id, messages, model: 'gpt-4o-mini' })
+      await window.api.queryAI({ requestId: id, messages, model: 'gpt-5.4-mini-2026-03-17' })
     } catch {
       setIsGenerating(false)
       setRequestId(null)
