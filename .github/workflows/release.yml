@@ -52,12 +52,7 @@ jobs:
 
       - name: Generate product config
         run: |
-          # Determine notarize setting based on whether Apple credentials are available
-          NOTARIZE="false"
-          if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ]; then
-            NOTARIZE="true"
-          fi
-          cat > electron-builder.product.yml << CONF
+          cat > electron-builder.product.yml << 'CONF'
           appId: ${{ matrix.product.appId }}
           productName: "${{ matrix.product.name }}"
           copyright: "Copyright © 2026 SourceThread"
@@ -92,9 +87,9 @@ jobs:
             extendInfo:
               - NSMicrophoneUsageDescription: "${{ matrix.product.name }} needs microphone access for real-time interview transcription."
               - LSUIElement: false
-            notarize: ${NOTARIZE}
+            notarize: false
           dmg:
-            artifactName: ${{ matrix.product.id }}-\${version}.\${ext}
+            artifactName: ${{ matrix.product.id }}-${version}.${ext}
           npmRebuild: false
           publish:
             provider: github
