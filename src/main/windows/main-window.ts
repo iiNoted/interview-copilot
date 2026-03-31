@@ -13,7 +13,7 @@ export function createMainWindow(): BrowserWindow {
     alwaysOnTop: false,
     skipTaskbar: false,
     resizable: true,
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     backgroundColor: '#0a0a0a',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

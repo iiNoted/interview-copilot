@@ -80,32 +80,38 @@ app.whenReady().then(() => {
 
   // Remove default menu in production (removes View > Toggle Developer Tools)
   if (app.isPackaged) {
-    Menu.setApplicationMenu(Menu.buildFromTemplate([
-      {
-        label: app.getName(),
-        submenu: [
-          { role: 'about' },
-          { type: 'separator' },
-          { role: 'hide' },
-          { role: 'hideOthers' },
-          { role: 'unhide' },
-          { type: 'separator' },
-          { role: 'quit' }
-        ]
-      },
-      {
-        label: 'Edit',
-        submenu: [
-          { role: 'undo' },
-          { role: 'redo' },
-          { type: 'separator' },
-          { role: 'cut' },
-          { role: 'copy' },
-          { role: 'paste' },
-          { role: 'selectAll' }
-        ]
-      }
-    ]))
+    if (process.platform === 'darwin') {
+      // macOS: minimal app menu (menu bar is always visible at screen top)
+      Menu.setApplicationMenu(Menu.buildFromTemplate([
+        {
+          label: app.getName(),
+          submenu: [
+            { role: 'about' },
+            { type: 'separator' },
+            { role: 'hide' },
+            { role: 'hideOthers' },
+            { role: 'unhide' },
+            { type: 'separator' },
+            { role: 'quit' }
+          ]
+        },
+        {
+          label: 'Edit',
+          submenu: [
+            { role: 'undo' },
+            { role: 'redo' },
+            { type: 'separator' },
+            { role: 'cut' },
+            { role: 'copy' },
+            { role: 'paste' },
+            { role: 'selectAll' }
+          ]
+        }
+      ]))
+    } else {
+      // Windows/Linux: hide the menu bar entirely (it was showing as blank "tabs")
+      Menu.setApplicationMenu(null)
+    }
   }
 
   // Recover from previous crash where BlackHole was left as system audio output
