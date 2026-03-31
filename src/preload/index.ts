@@ -216,9 +216,9 @@ const api = {
     return ipcRenderer.invoke('billing:open-portal')
   },
 
-  // Flat subscription ($25/month Standard)
-  createFlatCheckoutSession: (email: string): Promise<string | null> => {
-    return ipcRenderer.invoke('billing:create-flat-checkout', email)
+  // Flat subscription ($25/month Standard, or discounted with promo code)
+  createFlatCheckoutSession: (email: string, promoCode?: string): Promise<string | null> => {
+    return ipcRenderer.invoke('billing:create-flat-checkout', email, promoCode)
   },
   getFlatBillingState: (): Promise<{
     isActive: boolean

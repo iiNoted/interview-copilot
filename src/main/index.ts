@@ -467,9 +467,9 @@ app.whenReady().then(() => {
     await openCustomerPortal()
   })
 
-  // Flat subscription ($25/month Standard)
-  ipcMain.handle('billing:create-flat-checkout', async (_event, email: string) => {
-    return await createFlatCheckoutSession(email)
+  // Flat subscription ($25/month Standard, or discounted with promo code)
+  ipcMain.handle('billing:create-flat-checkout', async (_event, email: string, promoCode?: string) => {
+    return await createFlatCheckoutSession(email, promoCode)
   })
 
   ipcMain.handle('billing:get-flat-state', () => {

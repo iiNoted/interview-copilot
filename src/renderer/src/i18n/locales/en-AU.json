@@ -33,6 +33,10 @@
   "gate.paywall.timeout": "Payment verification timed out. If you completed payment, restart the app.",
   "gate.paywall.checkout_failed": "Failed to create checkout. Please try again.",
   "gate.paywall.error": "Something went wrong. Please try again.",
+  "gate.paywall.promo_link": "Have a promo code?",
+  "gate.paywall.promo_placeholder": "Enter code",
+  "gate.paywall.promo_apply": "Apply",
+  "gate.paywall.promo_invalid": "Invalid promo code. Please check and try again.",
 
   "gate.apikey.heading": "Connect Your API Key",
   "gate.apikey.subtitle": "AI features use your own OpenAI API key so you control costs.",

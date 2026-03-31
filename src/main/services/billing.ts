@@ -268,12 +268,12 @@ export function updateBillingConfig(config: Partial<BillingConfig>): void {
 
 let flatPollTimer: ReturnType<typeof setInterval> | null = null
 
-export async function createFlatCheckoutSession(email: string): Promise<string | null> {
+export async function createFlatCheckoutSession(email: string, promoCode?: string): Promise<string | null> {
   try {
     const response = await net.fetch(`${BILLING_API}/create-flat-checkout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, ...(promoCode ? { promoCode } : {}) })
     })
 
     if (!response.ok) return null

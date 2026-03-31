@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
-import { CreditCard, Loader2, CheckCircle, Shield, LogOut } from 'lucide-react'
+import { CreditCard, Loader2, CheckCircle, Shield, LogOut, Tag } from 'lucide-react'
 import { useT } from '@renderer/i18n/context'
 import { useProductTheme } from '../../App'
 
@@ -25,6 +25,9 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [waitingForPayment, setWaitingForPayment] = useState(false)
+  const [showPromo, setShowPromo] = useState(false)
+  const [promoCode, setPromoCode] = useState('')
+  const [promoError, setPromoError] = useState<string | null>(null)
 
   /** After subscription is confirmed, auto-fetch the cpk_ API key from server */
   const provisionApiKey = useCallback(async (email: string) => {
@@ -157,18 +160,25 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
     }
   }
 
-  const handleSubscribe = async (): Promise<void> => {
+  const handleSubscribe = async (withPromo?: boolean): Promise<void> => {
     if (!currentUser?.email) return
 
     setIsProcessing(true)
     setError(null)
+    setPromoError(null)
+
+    const code = withPromo ? promoCode.trim() : undefined
 
     try {
-      const url = await window.api.createFlatCheckoutSession(currentUser.email)
+      const url = await window.api.createFlatCheckoutSession(currentUser.email, code)
       if (url) {
         setWaitingForPayment(true)
       } else {
-        setError(t('gate.paywall.checkout_failed'))
+        if (withPromo) {
+          setPromoError(t('gate.paywall.promo_invalid'))
+        } else {
+          setError(t('gate.paywall.checkout_failed'))
+        }
       }
     } catch {
       setError(t('gate.paywall.error'))
@@ -326,18 +336,51 @@ export function SubscriptionGate({ children }: SubscriptionGateProps): React.JSX
               {t('gate.paywall.waiting')}
             </div>
           ) : (
-            <button
-              onClick={handleSubscribe}
-              disabled={isProcessing}
-              className="w-full py-3 rounded-[var(--radius-base,8px)] bg-[var(--color-primary)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--color-primary-fg,white)] font-medium text-sm transition-all flex items-center justify-center gap-2"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+            <>
+              <button
+                onClick={() => handleSubscribe(false)}
+                disabled={isProcessing}
+                className="w-full py-3 rounded-[var(--radius-base,8px)] bg-[var(--color-primary)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed text-[var(--color-primary-fg,white)] font-medium text-sm transition-all flex items-center justify-center gap-2"
+              >
+                {isProcessing && !showPromo ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="h-4 w-4" />
+                )}
+                {t('gate.paywall.subscribe')}
+              </button>
+
+              {/* Promo code section */}
+              {!showPromo ? (
+                <button
+                  onClick={() => setShowPromo(true)}
+                  className="w-full text-center text-xs text-white/30 hover:text-white/50 transition-colors mt-3 flex items-center justify-center gap-1"
+                >
+                  <Tag className="h-3 w-3" />
+                  {t('gate.paywall.promo_link')}
+                </button>
               ) : (
-                <CreditCard className="h-4 w-4" />
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => { setPromoCode(e.target.value); setPromoError(null) }}
+                    placeholder={t('gate.paywall.promo_placeholder')}
+                    className="flex-1 px-3 py-2 rounded-[var(--radius-base,8px)] bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[var(--color-primary)]/50"
+                    onKeyDown={(e) => { if (e.key === 'Enter' && promoCode.trim()) handleSubscribe(true) }}
+                  />
+                  <button
+                    onClick={() => handleSubscribe(true)}
+                    disabled={isProcessing || !promoCode.trim()}
+                    className="px-4 py-2 rounded-[var(--radius-base,8px)] bg-[var(--color-primary)] hover:brightness-110 disabled:opacity-50 text-[var(--color-primary-fg,white)] text-sm font-medium transition-all flex items-center gap-1"
+                  >
+                    {isProcessing ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    {t('gate.paywall.promo_apply')}
+                  </button>
+                </div>
               )}
-              {t('gate.paywall.subscribe')}
-            </button>
+              {promoError && <p className="text-red-400 text-xs mt-1 text-center">{promoError}</p>}
+            </>
           )}
 
           {error && <p className="text-red-400 text-xs mt-2 text-center">{error}</p>}
