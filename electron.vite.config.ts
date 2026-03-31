@@ -1,6 +1,18 @@
 import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
+
+/** Strip crossorigin attributes from HTML — breaks file:// loading on Windows */
+function stripCrossOrigin(): Plugin {
+  return {
+    name: 'strip-crossorigin',
+    enforce: 'post',
+    transformIndexHtml(html) {
+      return html.replace(/ crossorigin/g, '')
+    }
+  }
+}
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -29,7 +41,7 @@ export default defineConfig({
         '@renderer': resolve('src/renderer/src')
       }
     },
-    plugins: [react()],
+    plugins: [react(), stripCrossOrigin()],
     build: {
       sourcemap: false,
       minify: isProd ? 'terser' : false,
@@ -38,7 +50,14 @@ export default defineConfig({
             compress: { drop_console: true, drop_debugger: true },
             mangle: { toplevel: true }
           }
-        : undefined
+        : undefined,
+      rollupOptions: {
+        output: {
+          // Prevent crossorigin attribute on script/link tags — breaks file:// on Windows
+          crossOriginLoading: false
+        }
+      },
+      modulePreload: false
     }
   }
 })
