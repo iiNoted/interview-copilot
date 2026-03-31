@@ -51,12 +51,6 @@ export default defineConfig({
             mangle: { toplevel: true }
           }
         : undefined,
-      rollupOptions: {
-        output: {
-          // Prevent crossorigin attribute on script/link tags — breaks file:// on Windows
-          crossOriginLoading: false
-        }
-      },
       modulePreload: false
     }
   }
