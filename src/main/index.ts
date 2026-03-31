@@ -103,18 +103,28 @@ app.whenReady().then(() => {
             })
             if (response === 0) installReadyUpdate()
           } else {
-            dialog.showMessageBox({ type: 'info', title: 'Checking…', message: 'Checking for updates…', buttons: [] })
             const result = await manualCheckForUpdates()
-            if (result.status === 'ready' || result.status === 'available') {
-              const { response } = await dialog.showMessageBox({
-                type: 'info',
-                title: 'Update Available',
-                message: `Version ${result.version} is available and will download automatically.`,
-                buttons: ['OK']
-              })
-              void response
+            if (result.version && result.status !== 'idle') {
+              // Update found — downloading, available, or ready
+              if (result.status === 'ready') {
+                const { response } = await dialog.showMessageBox({
+                  type: 'info',
+                  title: 'Update Ready',
+                  message: `Version ${result.version} is ready. Restart to install.`,
+                  buttons: ['Restart Now', 'Later'],
+                  defaultId: 0
+                })
+                if (response === 0) installReadyUpdate()
+              } else {
+                await dialog.showMessageBox({
+                  type: 'info',
+                  title: 'Update Available',
+                  message: `Version ${result.version} is downloading. It will install when you close the app.`,
+                  buttons: ['OK']
+                })
+              }
             } else {
-              dialog.showMessageBox({ type: 'info', title: 'Up to Date', message: 'You are running the latest version.', buttons: ['OK'] })
+              await dialog.showMessageBox({ type: 'info', title: 'Up to Date', message: `You are running the latest version (v${app.getVersion()}).`, buttons: ['OK'] })
             }
           }
         }
