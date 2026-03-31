@@ -189,6 +189,29 @@ export function isUpdateBlocked(): boolean {
   return updateStatus === 'ready'
 }
 
+/** Trigger a manual update check (for menu items). Returns current status. */
+export async function manualCheckForUpdates(): Promise<{ status: UpdateStatus; version: string | null }> {
+  retryCount = 0
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    return { status: updateStatus, version: result?.updateInfo?.version || null }
+  } catch {
+    return { status: updateStatus, version: null }
+  }
+}
+
+/** Install a downloaded update (quit + install). No-op if no update ready. */
+export function installReadyUpdate(): void {
+  if (updateStatus === 'ready') {
+    autoUpdater.quitAndInstall(false, true)
+  }
+}
+
+/** Get current update status for menu state */
+export function getUpdateState(): { status: UpdateStatus; version: string | null } {
+  return { status: updateStatus, version: updateVersion }
+}
+
 /**
  * Set up the auto-updater for the application.
  * Must be called once after the main window is created.

@@ -45,7 +45,7 @@ import {
 import { getCategories, getCategoryDetail, getArticleContent, rankCategoriesByResume, rankCategoriesByContext, getResumeDataPack, getQualificationsDb, getQualificationArticleSnippet } from './services/pipeline-loader'
 import { searchJobs, getJobDetail } from './services/job-search'
 import { execSync } from 'child_process'
-import { setupAutoUpdater, teardownAutoUpdater } from './services/auto-updater'
+import { setupAutoUpdater, teardownAutoUpdater, manualCheckForUpdates, installReadyUpdate, getUpdateState } from './services/auto-updater'
 import { isWhisperProvisioned, isModelProvisioned, provisionAll } from './services/whisper-provisioner'
 
 let mainWindow: BrowserWindow | null = null
@@ -80,8 +80,48 @@ app.whenReady().then(() => {
 
   // Remove default menu in production (removes View > Toggle Developer Tools)
   if (app.isPackaged) {
+    const editSubmenu: Electron.MenuItemConstructorOptions[] = [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      { role: 'selectAll' },
+      { type: 'separator' },
+      {
+        label: 'Check for Updates…',
+        click: async () => {
+          const state = getUpdateState()
+          if (state.status === 'ready') {
+            const { response } = await dialog.showMessageBox({
+              type: 'info',
+              title: 'Update Ready',
+              message: `Version ${state.version} is ready to install.`,
+              buttons: ['Restart Now', 'Later'],
+              defaultId: 0
+            })
+            if (response === 0) installReadyUpdate()
+          } else {
+            dialog.showMessageBox({ type: 'info', title: 'Checking…', message: 'Checking for updates…', buttons: [] })
+            const result = await manualCheckForUpdates()
+            if (result.status === 'ready' || result.status === 'available') {
+              const { response } = await dialog.showMessageBox({
+                type: 'info',
+                title: 'Update Available',
+                message: `Version ${result.version} is available and will download automatically.`,
+                buttons: ['OK']
+              })
+              void response
+            } else {
+              dialog.showMessageBox({ type: 'info', title: 'Up to Date', message: 'You are running the latest version.', buttons: ['OK'] })
+            }
+          }
+        }
+      }
+    ]
+
     if (process.platform === 'darwin') {
-      // macOS: minimal app menu (menu bar is always visible at screen top)
       Menu.setApplicationMenu(Menu.buildFromTemplate([
         {
           label: app.getName(),
@@ -95,22 +135,13 @@ app.whenReady().then(() => {
             { role: 'quit' }
           ]
         },
-        {
-          label: 'Edit',
-          submenu: [
-            { role: 'undo' },
-            { role: 'redo' },
-            { type: 'separator' },
-            { role: 'cut' },
-            { role: 'copy' },
-            { role: 'paste' },
-            { role: 'selectAll' }
-          ]
-        }
+        { label: 'Edit', submenu: editSubmenu }
       ]))
     } else {
-      // Windows/Linux: hide the menu bar entirely (it was showing as blank "tabs")
-      Menu.setApplicationMenu(null)
+      // Windows/Linux: single Edit menu with update option (no macOS-only items)
+      Menu.setApplicationMenu(Menu.buildFromTemplate([
+        { label: 'Edit', submenu: editSubmenu }
+      ]))
     }
   }
 

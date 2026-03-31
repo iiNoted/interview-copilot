@@ -1,6 +1,6 @@
 {
   "name": "interview-copilot",
-  "version": "1.5.9",
+  "version": "1.6.0",
   "description": "AI-powered interview and meeting copilot with real-time transcription",
   "main": "./out/main/index.js",
   "author": "SourceThread",
